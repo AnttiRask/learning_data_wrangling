@@ -1,0 +1,754 @@
+  ---
+title: "8 Transformations with tidyverse"
+author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
+date: "2022-07-26"
+output: html_document
+---
+
+# Transformations with Tidyverse Libraries
+
+## Load Libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(conflicted) # An Alternative Conflict Resolution Strategy
+  conflicts_prefer(dplyr::filter)
+library(tidyverse)  # Easily Install and Load the 'Tidyverse'
+```
+
+## Dataset
+
+The dataset to be used in this chapter is the _Adult Data Set_ (also know as _Census Income_) from the UCI Machine Learning Repository.
+
+__Dataset Credits:__
+Dua, D. and Graff, C. (2019). UCI Machine Learning Repository [http://archive.ics.uci.edu/ml]. Irvine, CA: University of California, School of Information and Computer Science.
+
+__URL Address__
+https://archive.ics.uci.edu/ml/datasets/Adult
+
+### Loading the dataset
+
+```{r}
+# Define column names
+header <- c(
+  "age",
+  "workclass",
+  "fnlwgt",
+  "education",
+  "education_num",
+  "marital_status",
+  "occupation",
+  "relationship",
+  "race",
+  "sex",
+  "capital_gain",
+  "capital_loss",
+  "hours_per_week",
+  "native_country",
+  "target"
+)
+
+# Load the dataset to RStudio
+tbl <- read_csv(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data",
+  col_names = header,
+  trim_ws   = TRUE
+)
+```
+
+```{r}
+head(tbl)
+```
+
+### Slicing
+
+Slicing is like zooming in our dataset, looking only the parts we need or want to see.
+
+```{r}
+# Slicing rows 1 to 5, columns 1 to 4.
+tbl %>%
+  slice_head(n = 5) %>% 
+  select(1:4)
+```
+
+```{r}
+# Slicing with slice_min() and slice_max()
+tbl %>% 
+  slice_min(age, prop = 0.10)
+
+tbl %>%
+  slice_max(age, prop = 0.30)
+```
+
+```{r}
+# Slice sample
+tbl %>%
+  slice_sample(
+    n       = 10,
+    replace = TRUE
+  )
+```
+
+### Filtering
+
+Filter returns all the variables for the observations that fulfill the filter condition. Using _select()_, we can also select only the wanted variables.
+
+```{r}
+# Filtering age over 30 years old
+tbl %>%
+  filter(age > 30)
+```
+
+```{r}
+# Filter age > 30 and selecting age and marital_status
+tbl %>% 
+  filter(age > 30) %>% 
+  select(marital_status, age)
+```
+
+```{r}
+# Distinct - removing duplicates
+tbl %>%
+  distinct(sex)
+```
+
+### Group by and summarize
+
+Group by will put the data in groups. Summarize will reduce the aggregated data values to one number, like mean, median, count etc.
+
+This is how the functions behave when called alone
+
+```{r}
+# group by not summarized
+tbl %>%
+  group_by(workclass)
+```
+
+```{r}
+# summarise without group_by returning average age of the dataset
+tbl %>%
+  summarise(age_avg = mean(age))
+```
+
+```{r}
+# Group By workclass and Summarize mean age -> .by
+tbl %>% 
+  summarise(
+    age_avg = mean(age),
+    .by     = workclass
+  )
+```
+
+Let's look at the object returned by dataset grouped by more than one variable. Notice that it is a grouped tibble. To make the return object be a regular tibble, use the function _ungroup()_.
+
+```{r}
+# Returns object grouped_tbl
+workclass_groups <- tbl %>%
+  group_by(workclass, sex) %>% 
+  summarise(age_avg = mean(age))
+
+workclass_groups
+```
+
+```{r}
+# Returns object tibble
+workclass_ungrouped <- tbl %>%
+  summarise(
+    age_avg = mean(age),
+    .by     = c(workclass, sex)
+  )
+
+workclass_ungrouped
+```
+
+#### Summary Functions
+
+Functions to be used with _summarise()_.
+
+```{r}
+# n() shows the count of observations in each group
+tbl %>%
+  summarise(
+    n(),
+    .by = workclass
+  )
+```
+
+```{r}
+# n_distinct() shows the count of unique observations in each group
+tbl %>%
+  summarize(n_distinct(workclass))
+
+# if you want to dig deeper
+tbl %>% 
+  summarize(n_distinct(native_country), .by = workclass)
+```
+
+```{r}
+# sum(!is.na()) shows the count of Non NA observations
+tbl %>% summarise(sum(!is.na(workclass)))
+```
+
+```{r}
+# first() shows the first age value in each group
+# Similarly, you can use last() or nth()
+tbl %>%
+  summarise(
+    first(age),
+    .by = workclass
+  )
+```
+
+```{r}
+# quantile() shows the top number that meets the quantile percentage chosen
+# In this case, 50% of the age observations are under what value by group
+tbl %>% summarise(
+  quantile(age, 0.5),
+  .by = workclass
+)
+```
+
+```{r}
+# sd() shows standard deviation of a variable
+tbl %>%
+  summarise(
+    sd(capital_gain),
+    .by = workclass
+  )
+```
+
+```{r}
+# Across function, to apply the function mean to the selected columns
+tbl %>%
+  select(1, 3, 5, 11, 12, 13) %>%
+  summarise(across(everything(), mean))
+```
+
+### Replace and Fill values
+
+For this part of the exercise, let's create a custom function to count the NAs by column. It will be useful during the exercise.
+
+
+```{r}
+na_by_column <- function(tbl) {
+  
+  # Function that takes in a data frame and returns a table with the NA count by column.
+  # Input:
+  # tbl: data frame
+  # Return
+  # tibble object
+  
+  tbl %>%
+    summarise(across(everything(), ~sum(is.na(.x)))) %>%
+    pivot_longer(
+      cols      = everything(),
+      names_to  = "Column",
+      values_to = "NA count"
+    ) %>%
+    arrange(Column)
+}
+```
+
+#### Replace
+
+Replace is to exchange a value for another. Here, we will replace the `?` with `NA`, so we can fill the NAs later.
+
+The first way to do that is using replace. 
+
+```{r}
+# Define a function to count '?' values in each column
+count_question_marks <- function(x) {
+  sum(x == "?", na.rm = TRUE)
+}
+```
+
+```{r}
+# Print the count of '?' values in each column
+tbl %>%
+  summarise(across(everything(), count_question_marks)) %>%
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "Column",
+    values_to = "Count of '?'"
+  ) %>%
+  filter(`Count of '?'` > 0)
+```
+
+```{r}
+# Replace '?' values with NA in a new dataset variable
+tbl_replaced <- tbl %>%
+  mutate(across(where(is.character), ~replace(., . == "?", NA)))
+
+# Count NAs by variable using the previously defined na_by_column() function
+na_by_column(tbl_replaced)
+```
+
+#### NA_IF
+
+But there is another way, much easier, by the way, using the function _na_if()_. Simply put, if a value is a given pattern, make it _NA_.
+
+```{r}
+# Replacing values "?" with NA (tidyverse 1.3.2)
+tbl_replaced <- tbl %>%
+  mutate(
+    workclass      = na_if(workclass, "?"),
+    occupation     = na_if(occupation, "?"),
+    native_country = na_if(native_country, "?")
+  )
+
+# Count NAs by variable
+na_by_column(tbl_replaced)
+```
+
+#### Filling
+
+Fill values is when you have a _NA_ value that needs to be filled with an average or another value, like zero.
+
+```{r}
+# Fill NA values with last or next valid value
+tbl_replaced %>% fill(
+  workclass,
+  occupation,
+  native_country,
+  .direction = "down"
+)
+```
+
+```{r}
+# Finding the most frequent entry
+get_most_frequent <- function(data, column) {
+  data %>%
+    summarise(
+      freq = n(),
+      .by  = all_of(column)
+    ) %>%
+    top_n(1, freq) %>%
+    pull(column)
+}
+
+m_freq_workcls <- get_most_frequent(tbl, "workclass")
+m_freq_workcls
+
+m_freq_occup   <- get_most_frequent(tbl, "occupation")
+m_freq_occup
+```
+
+```{r}
+# Replace NA with the most frequent value
+tbl_no_na <- tbl_replaced %>%
+  replace_na(list(workclass = m_freq_workcls, occupation = m_freq_occup)) %>% 
+  # Drop NAs and save the dataset in a new variable name
+  drop_na()
+
+tbl_no_na
+```
+
+#### Filling NAs from Numeric columns
+
+```{r}
+# Tibble
+tbl_num <- tibble(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+# Fill NAs for numeric columns with statistics measurements
+tbl_num %>% 
+  replace_na(
+    list(
+      A = median(tbl_num$A, na.rm = TRUE),
+      B = mean(tbl_num$B, na.rm = TRUE),
+      C = min(tbl_num$C, na.rm = TRUE)
+    )
+  )
+```
+
+### Arranging Data
+
+Arrange data is useful to rank items from top to bottom or vice-versa, creating ordinated datasets.
+
+```{r}
+# Arrange data in increasing order
+tbl_no_na %>% arrange(native_country)
+```
+
+```{r}
+# Arrange data in decreasing order
+tbl_no_na %>% arrange(desc(native_country))
+```
+
+Using _tidyverse_ to group variables and order them.
+
+```{r}
+# Group and order average net gain by education level
+tbl_no_na %>%
+  summarise(
+    count        = n(),
+    avg_net_gain = mean(capital_gain - capital_loss),
+    .by          = education
+  ) %>% 
+  arrange(desc(avg_net_gain))
+```
+
+### Creating New Variables
+
+During data wrangling, it is common to create new variables, being that for splitting an information or combining two or more variables to make a new one.
+
+__Note: to create new columns in R, you can use `tbl$new_col_name` or `tbl['new_col_name]`__
+
+```{r}
+# Since the delimiter used was the word boundary, we couldn't replace the superseded separate() function with spread_wider_delim()
+
+# Split variable target into sign and amount
+tbl_no_na %>%
+  separate_wider_regex(
+    target,
+    c(
+      amt  = "\\D*(?<=\\b)",
+      sign = ".*"
+    )
+  )
+```
+
+```{r}
+# Unite variables sex, race and age
+tbl_no_na %>% 
+  unite(
+    sex,
+    race,
+    age,
+    col    = "description",
+    sep    = "_",
+    remove = FALSE
+  )
+```
+
+#### Creating a custom calculation
+
+Imagine that there were a rule in place that, for every _capital_gain_ - _capital_loss_ equal or greater than 15,000 there was a 10% tax.
+
+We will first create a _total_ variable to show arithmetic operation and then calculate the 10% tax
+
+```{r}
+# Tax variable creation
+tbl_no_na %>% 
+  mutate(
+    total_gain = capital_gain - capital_loss,
+    tax        = case_when(
+      total_gain >= 15000 ~ total_gain * 0.1,
+                     TRUE ~ 0
+    )  
+  ) %>% 
+  arrange(desc(tax))
+```
+
+Let’s change <=50K to _under_ and >50K to _over_.
+
+```{r}
+# Change values from target to over or under
+ tbl_no_na %>% 
+  mutate(
+    over_under = case_match(
+      target,
+      "<=50K" ~ "under",
+      ">50K"  ~ "over"
+    )
+  ) %>%
+  select(target, over_under)
+```
+
+Mutate and cut to see which observations are over or under the average.
+
+```{r}
+# Observations over or under the average
+tbl_no_na %>% 
+  mutate(
+    age_avg            = mean(age, na.rm = TRUE),
+    over_under_age_avg = case_when(
+      age <  mean(age, na.rm = TRUE) ~ "Lower than avg",
+      age >= mean(age, na.rm = TRUE) ~ "Above the avg"
+    )
+  ) %>%
+  select(age, age_avg, over_under_age_avg)
+```
+
+### Reshape
+
+Reshaping means to transform the dataset from wide format to long or vice versa.
+
+Roughly, we can say that:
+Wide format: variables are rows.
+Long format: variables are columns.
+
+#### Wide to Long
+
+```{r}
+# set seed to generate the same random numbers every run
+set.seed(42)
+
+# Create a dataset
+tbl_wide <- tibble(
+  project = c("project1", "project2", "project3"),
+  Jan = sample(1000:2000, 3),
+  Feb = sample(1000:2000, 3),
+  Mar = sample(1000:2000, 3)
+)
+  
+# Wide to Long
+tbl_long <- tbl_wide %>% 
+  pivot_longer(
+    cols      = Jan:Mar,
+    names_to  = "months",
+    values_to = "expenses"
+  )
+
+tbl_long
+```
+
+#### Long to Wide
+
+```{r}
+# Long to Wide
+tbl_long %>%
+  pivot_wider(
+    names_from  = "months",
+    values_from = "expenses"
+  )
+```
+
+# Joining Datasets
+
+## Creating tables
+
+Suppose you are a data scientist or engineer in a retail company and have three tables. One fact table, with measurements, and two dimension tables, with descriptions. Our goal is to use tidyverse functions to create all types of joins with the datasets.
+
+```{r}
+# Fact table
+sales <- tibble(
+  date       = c("2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05"),
+  store_cd   = c(1, 2, 3, 4, 5),
+  product_cd = c(1, 2, 3, 4, 5),
+  qty        = c(10, 12, 9, 12, 8), 
+  sales      = c(30, 60, 45, 24, 32)
+  )
+
+sales
+
+# Dimension store
+stores <- tibble(
+  store_cd   = c(1, 2, 3, 4, 6),
+  address    = c("1 main st", "20 side st", "19 square blvd", "101 first st", "1002 retail ave"),
+  city       = c("Main", "East", "West", "North", "South"), 
+  open_hours = c("7-23", "7-23", "9-21", "9-21", "9-21")
+  )
+
+stores
+
+# Dimension product
+products <- tibble(
+  product_cd   = c(1, 2, 3, 4, 6),
+  description  = c("Soft drink", "Frozen snack", "Fruit", "Water", "Fruit 2"),
+  unit_price   = c(3.0, 5.0, 5.0, 2.0, 4.0), 
+  unit_measure = c("each", "each", "kg", "each", "kg")
+  )
+
+products
+```
+
+## Left Join
+
+Returns everything from the left table and only the matches from the right table.
+
+If we want to know the description of the products, we can left join the sales table with the products table.
+
+* Left table: _sales_
+* Right table: _products_
+
+```{r}
+# Left join
+sales %>% 
+  left_join(products, by = "product_cd")
+```
+
+
+```{r}
+# Left join with selected columns from products
+sales %>%
+  left_join(
+    products %>%
+      select(product_cd, description),
+    by = "product_cd"
+  )
+```
+
+## Right Join
+
+Returns everything from the right table and only the matches from the left table.
+
+If we want to join the sales number to the stores table, we can right join the stores table with the sales table.
+
+* Left table: _sales_
+* Right table: _stores_
+
+```{r}
+# Right join
+sales %>%
+  select(store_cd, sales) %>% 
+  right_join(stores, by = "store_cd")
+```
+
+## Inner Join
+
+Returns only the matching rows from the left and right tables.
+When we inner join tables, the result will be only the observations present in each table.
+
+* Left table: _sales_
+* Right table: _stores_
+
+```{r}
+# Inner join
+sales %>% 
+  inner_join(stores, by = "store_cd")
+```
+
+## Full Join
+
+Returns all the rows from both tables.
+
+* Left table: _sales_
+* Right table: _stores_
+
+```{r}
+# Full join
+sales %>%
+  full_join(stores)
+```
+
+## Anti-Join
+
+Returns all the rows from the left table that are NOT in the right table.
+
+* Left table: _sales_
+* Right table: _products_
+
+```{r}
+# Anti-join
+sales %>%
+  anti_join(products)
+```
+
+# Do more with __{tidyverse}__
+
+In this file, we will go over some interesting functions of the package __tidyverse__.
+
+## Load a dataset
+```{r}
+data("mtcars")
+```
+
+## Functions from purrr
+
+Functions similar to apply family
+
+### Mapping functions
+
+_map()_: applies function to every element of list or vector. Returns same data type.
+
+```{r}
+# Map
+mtcars %>% 
+  select(hp, wt) %>% 
+  map(mean)
+```
+
+```{r}
+# Map int
+mtcars %>% 
+  select(hp, wt) %>% 
+  map_int(length)
+```
+
+## Binding Data
+
+Binding data is useful to glue pieces of data together.
+
+_brind rows_ glues the data by columns. So if your data has the same variables, you can use this function.
+
+```{r}
+# Creating datasets A and B
+A <- mtcars %>% 
+  slice_head(n = 3)
+
+B <- mtcars %>% 
+  slice_tail(n = 3)
+
+# Bind rows
+AB <- A %>%
+  bind_rows(B) %>% 
+  as_tibble(rownames = "names")
+
+AB
+```
+
+_bind_cols()_ is to bind columns, gathering the data by rows. It is more suitable when the rows are for the same observation, but the columns are different and need to be put together.
+
+```{r}
+# Creating datasets A and B
+A <- mtcars %>% 
+  slice_head(n = 5) %>% 
+  select(mpg:disp)
+
+B <- mtcars %>% 
+  slice_head(n = 5) %>% 
+  select(hp:wt)
+
+# Bind columns
+AB <- A %>%
+  bind_cols(B) %>% 
+  as_tibble(rownames = "names")
+
+AB
+```
+
+## Cumulative functions
+
+Set of functions used along with _mutate()_, like _cumsum()_, _cumprod()_, _cummean()_ and _cummax()_. These are used for cumulative calculations of a variable using a simple syntax, requiring that we just pass a variable name to it within the mutate function, as seen next.
+
+```{r}
+# Cumulative sum of weight
+mtcars %>%
+  as_tibble(rownames = "names") %>% 
+  mutate(cumulative_sum = cume_dist(wt)) %>%
+  arrange(cumulative_sum)
+```
+
+## Case When
+
+Function `case_when()` to deal with multiple cases of logical tests.
+
+```{r}
+# Case When to create a new label column for the transmission variable
+mtcars %>%
+  as_tibble(rownames = "names") %>%
+  mutate(
+    transmission_type = case_when(
+      am == 0 ~ "automatic",
+      am == 1 ~ "manual"
+    )
+  ) %>% 
+  select(am, transmission_type)
+```
+
+## ggplot2
+
+A basic plot with _ggplot2_
+
+```{r}
+# ggplot2 basic scatterplot
+mtcars %>%
+  as_tibble(rownames = "names") %>%
+  ggplot(aes(hp, mpg)) +
+  geom_point(color = "royalblue", size = 4, alpha = 0.5) +
+  labs(title = "Relationship between HP vs. MPG") +
+  theme_classic()
+```

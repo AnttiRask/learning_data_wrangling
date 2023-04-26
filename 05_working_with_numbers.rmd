@@ -1,0 +1,383 @@
+---
+title: "5 Working With Numbers"
+author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
+date: "2022-07-11"
+output: html_document
+---
+
+# Creating Numeric variables
+
+## Load Libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(conflicted) # An Alternative Conflict Resolution Strategy
+  conflicts_prefer(dplyr::filter)
+library(patchwork)  # The Composer of Plots
+library(skimr)      # Compact and Flexible Summaries of Data
+library(tidyverse)  # Easily Install and Load the 'Tidyverse'
+```
+
+```{r}
+# Creating a scalar
+scalar <- 42
+scalar
+
+# Creating a vector
+vec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9)
+vec
+
+# Creating a Matrix
+mtrx <- vec %>%
+  matrix(nrow = 3, ncol = 3)
+
+mtrx
+```
+
+```{r}
+# Creating a tibble
+tbl <- tibble(
+  column1 = c(1,2,3),
+  column2 = c(4,5,6),
+  column3 = c(7,8,9)
+)
+
+tbl
+```
+
+## Vectors
+
+```{r}
+# Vector
+vec1 <- c(9,8,7,6,5,4,3,2,1)
+vec2 <- c(1,2,3,4,5,6,7,8,9)
+
+# Slicing a vector
+vec1[1:3]
+
+# Slice by condition
+vec1[vec1 >= 6]
+
+# Sum of vectors
+vec1 + vec2
+
+# Multiplication of vectors
+vec1 * vec2
+
+# Addition or Multiplication of a vector by a single number
+vec1 * 10
+vec1 - 1
+
+# Two vectors of different sizes
+c(1, 2) + c(1, 2, 3, 4)
+```
+
+## Matrix
+
+Two dimensional elements that require a different slicing notation
+
+```{r}
+# Create a Matrix
+mtrx <- matrix(
+  1:12,
+  nrow  = 4,
+  ncol  = 3,
+  byrow = TRUE
+)
+
+mtrx
+
+# Slicing [row,col]
+mtrx[2,3]
+```
+
+## Tibbles
+
+They are heterogeneous. They accept variables with different data types.
+
+```{r}
+# Tibble
+tbl <- tibble(
+  name   = c("Carl", "Vanessa", "Hanna", "Barbara"),
+  class_ = c("Math", "Math", "Math", "Math"),
+  grade  = c(8.5, 9, 9, 7)
+)
+
+tbl
+```
+
+```{r}
+# Slicing Carl's grade (col 1 and col 3)
+tbl[1,3]
+
+# alternatively
+tbl %>%
+  filter(name == "Carl") %>% 
+  select(grade)
+```
+
+```{r}
+# Slicing by variable
+tbl[, "grade"]
+
+# Alternatively
+tbl %>% 
+  select(grade)
+```
+
+```{r}
+# Slicing by condition
+tbl[ tbl$grade > 8,]
+
+# alternatively
+tbl %>% 
+  filter(grade > 8)
+```
+
+Example: Extra point from the "professor"
+
+```{r}
+# Extra point
+# Scenario: everyone delivered
+tbl_with_new_grade <- tbl %>% 
+  mutate(new_grade = grade + 1)
+
+tbl_with_new_grade
+```
+
+Normalization example
+
+```{r}
+# Normalization
+max_grade <- tbl_with_new_grade %>% 
+  pull(grade) %>% 
+  max()
+
+tbl_normalized <- tbl_with_new_grade %>% 
+  mutate(normalized_grade = grade / max_grade)
+
+tbl_normalized
+```
+
+## Map Functions from {purrr}
+
+Let’s you apply a function to a row or a column of a tibble.
+
+Also other ways to replace _apply()_ from base R like _summarise()_ + _across()_ + _everything()_
+
+### _pmap_dbl()_ for mapping over multiple input simultaneously (in "parallel")
+
+```{r}
+# apply function mean to rows: sum 'grade' + 'new_grade'
+tbl_normalized %>% 
+  select(grade, new_grade) %>% 
+  pmap_dbl(~ mean(c(...)))
+
+# apply function mean to columns the column 3 and 4
+tbl_normalized %>% 
+  select(grade, new_grade) %>% 
+  summarise(across(everything(), mean))
+
+# apply custom function
+my_func <- function(grade, new_grade) {
+  sum(grade, new_grade) / 2
+}
+
+tbl_normalized %>% 
+  select(grade, new_grade) %>% 
+  pmap_dbl(my_func)
+```
+ 
+### _map()_ 
+
+Used to apply a function to lists of objects, returning a list object of the same length.
+
+```{r}
+# lapply of a custom function to remove the extra point from new_grade
+my_func <- function (x){x-1}
+map_obj <- map(tbl_normalized$new_grade, my_func)
+map_obj
+```
+
+## _map_dbl()_
+
+To replace _sapply()_ from base R, you can use either _map_dbl()_ or just _map()_, depending on the context
+
+```{r}
+# map_dbl a custom function to a single column
+my_func <- function(x) {
+  x - 1
+}
+
+tbl_normalized %>%
+  pull(new_grade) %>% 
+  map_dbl(my_func)
+
+# mapping of a custom function to two columns
+tbl_normalized %>%
+  select(grade, new_grade) %>% 
+  map(my_func) %>%
+  as_tibble() %>% 
+  as.matrix()
+```
+
+No need to use _tapply()_ from base R either. Summarise does the same job here.
+
+```{r}
+# Create new tibble
+tbl <- tibble(
+  name   = c("Carl", "Vanessa", "Hanna", "Barbara", "Jason", "Alison", "Kevin", "Melody"),
+  class_ = c("Math", "Math", "Math", "Math", "Math2", "Math2", "Math2", "Math2"),
+  grade  = c(8.5, 9, 9, 7, 5, 7, 10, 9.5)
+)
+
+# Calculate the mean for each class_
+tbl %>% 
+  summarise(
+    mean_grade = mean(grade),
+    .by        = class_
+  )
+```
+ 
+## Descriptive Statistics
+ 
+Descriptive statistics are measurements or summarizations of a sample used to describe a variable
+ 
+```{r}
+# Set a seed to reproduce the same results
+set.seed(12)
+
+# Creating a variable: 50 data points, mean 0, standard deviation 1
+var1 <- rnorm(50, mean = 0, sd = 1)
+
+# Creating a variable: 50 data points, mean 0, standard deviation 10
+var2 <- rnorm(50, mean = 0, sd = 5)
+
+# Mean
+mean(var1)
+mean(var2)
+
+# Standard Deviation
+sd(var1)
+sd(var2)
+
+# Median
+median(var1)
+median(var2)
+
+# percentiles or quantiles
+quantile(var1, c(0.25, 0.5, 0.75))
+```
+ 
+# Histograms
+
+```{r}
+# Histogram var1
+p1 <- var1 %>% 
+  as_tibble() %>% 
+  ggplot(aes(var1)) +
+  geom_histogram(
+    breaks = seq(-2, 3, by = 0.5),
+    fill   = "royalblue",
+    color  = "black"
+  ) +
+  scale_x_continuous(
+    limits = c(-20, 20) 
+  ) +
+  scale_y_continuous(
+    expand = c(0, 0),
+    limits = c(0, 20)
+  ) +
+  labs(y = "Frequency")
+
+# Histogram var2
+p2 <- var2 %>%
+  as_tibble() %>% 
+  ggplot(aes(var2)) +
+  geom_histogram(
+    breaks = seq(-15, 15, by = 5),
+    fill   = "coral",
+    color  = "black"
+  ) +
+  scale_x_continuous(
+    limits = c(-20, 20) 
+  ) +
+  scale_y_continuous(
+    expand = c(0, 0),
+    limits = c(0, 20)
+  ) +
+  labs(y = "Frequency")
+  
+(p1 + p2) * theme_classic()
+```
+ 
+Descriptive statistics in numbers
+
+```{r}
+# Create a tibble with both variables for comparison
+tbl <- tibble(
+  var1 = var1,
+  var2 = var2
+)
+
+# Comparison tibble
+
+# Define a function to apply summary statistics
+apply_summary_stats <- function(x) {
+  list(
+    avg        = mean(x),
+		std_dev    = sd(x),
+		min_val    = min(x),
+		pct25      = quantile(x, 0.25),
+		median_val = median(x),
+		pct75      = quantile(x, 0.75),
+		max_val    = max(x)
+  )
+}
+
+# Use the function with the pipeline
+tbl %>%
+	reframe(
+		var   = names(.),
+		stats = map(var, ~ apply_summary_stats(tbl[[.x]]))
+	) %>%
+	unnest_wider(stats) %>%
+	pivot_longer(
+		cols      = -var,
+		names_to  = "stat",
+		values_to = "value"
+	) %>%
+	pivot_wider(
+		names_from  = "stat",
+		values_from = "value"
+	)
+```
+
+Calculate statistics using the function _summary()_.
+
+```{r}
+# Descriptive stats with summary function
+summary(tbl)
+```
+
+```{r}
+skim(tbl)
+```
+
+## Correlation
+
+Correlation is the measurement of the strength of a linear relationship between two variables.
+
+```{r}
+# Correlation
+cor(var1, var2, method="pearson")
+```
+
+```{r}
+# Scatterplot
+tbl %>% 
+  ggplot(aes(var1, var2)) +
+  geom_point(color = "royalblue", size = 2) +
+  labs(title = "Scatterplot var1 x var2") +
+  theme_classic()
+```
+

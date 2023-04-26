@@ -1,0 +1,379 @@
+---
+title: "11 Enhanced Visualization with ggplot2"
+author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
+date: "2022-08-26"
+output: html_document
+---
+
+# Enhanced Visualization with {ggplot2}
+
+## Import Libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(conflicted)  # An Alternative Conflict Resolution Strategy 
+library(datasets)    # The R Datasets Package
+library(gghighlight) # Highlight Lines and Points in 'ggplot2'
+library(ggrepel)     # Automatically Position Non-Overlapping Text Labels with 'ggplot2'     
+library(patchwork)   # The Composer of Plots
+library(plotly)      # Create Interactive Web Graphics via 'plotly.js'
+library(tidyverse)   # Easily Install and Load the 'Tidyverse'
+```
+
+## Dataset
+
+In this chapter, we will use the dataset "diamonds", from the package datasets  to illustrate the plots.
+
+To make the code more generically applicable to any dataset, I will call it "tbl".
+
+```{r}
+# Loading the dataset
+data("diamonds")
+
+tbl <- diamonds
+
+remove(diamonds)
+
+tbl
+```
+
+A regular scatterplot of the prices by carat will look busy. Observe.
+
+```{r}
+# Scatterplot of price by carat.
+tbl %>%
+  ggplot(aes(carat, price, color = cut)) + 
+  geom_point(alpha = 0.5) +
+  theme_classic()
+```
+
+```{r}
+# Facet grid by cut of scatterplot price by carat
+tbl %>%
+  ggplot(aes(carat, price, color = cut)) + 
+  geom_point(alpha = 0.5) +
+  facet_grid(vars(cut)) +
+  theme_bw()
+```
+
+```{r}
+# Facet grid by cut and clarity of scatterplot price by carat
+tbl %>% 
+  ggplot(aes(carat, price, color = cut)) + 
+  geom_point(alpha = 0.5) +
+  facet_grid(vars(cut), vars(clarity)) +
+  theme_bw()
+```
+
+__Facet wrap__
+
+It forces the grid into a rectangular form.
+
+```{r}
+# Facet wrap by cut of scatterplot price by carat
+tbl %>% 
+  ggplot(aes(carat, price, color = cut)) + 
+  geom_point(alpha = 0.5) +
+  facet_wrap(vars(cut)) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+```{r}
+# Alternatively with {gghighlight}
+tbl %>% 
+  ggplot(aes(carat, price, color = cut)) + 
+  geom_point(alpha = 0.5) +
+  facet_wrap(vars(cut)) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  gghighlight()
+```
+
+### Map plots
+
+Maps are good to plot information based on locations.
+
+Let's load a file with location information about the USA states and their GDP in 2021.
+
+https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_GDP
+
+```{r}
+# Load the CSV file
+states <- read_csv("data/USA_states.csv")
+
+states
+```
+
+Now, to create a map, we use the _geom_map()_ function.
+
+```{r}
+# Loading the map of the USA states from ggplot2
+us <- map_data("state")
+
+# Plot only the USA map
+us %>% 
+  ggplot() + 
+  geom_map(
+    aes(long, lat, map_id = region),
+    map   = us,
+    color = "black", 
+    fill  = "lightgray"
+  ) +
+  theme_void()
+```
+
+Now let's plot the USA Map with the capital cities marked.
+
+```{r}
+# Names of the states to lower case
+states_lower <- states %>%
+  mutate(state = str_to_lower(state))
+
+# Mapping the location of the state capitals
+us_map <- states_lower %>% 
+  ggplot() + 
+  geom_map(
+    aes(longitude, latitude, map_id = state),
+    map   = us,
+    color = "black",
+    fill  = "lightgray"
+  ) + 
+  xlim(-130, -60) +
+  ylim(20, 55) +
+  theme_void()
+
+options(scipen = 999)
+
+# Adding the capital of the states locations.
+us_map +
+  geom_point(
+    aes(longitude, latitude, size = GDP / 1000000, fill = GDP),
+    shape = 24
+  ) +
+  labs(
+    title    = "USA states and the capital cities",
+    subtitle = str_glue(
+    "The triangle is the location of the capital of the state.
+    The bigger the triangle, the higher is the state GDP (USD Millions)"
+    )
+  )
+```
+
+We can also add the state names to the plot.
+
+```{r}
+
+# Mapping the location of the state capitals
+states_lower %>% 
+  ggplot() + 
+  geom_map(
+    aes(longitude, latitude, map_id = state),
+    map   = us,
+    color = "black",
+    fill  = "lightgray"
+  ) + 
+  geom_point(
+    aes(longitude, latitude),
+    fill  = "coral",
+    shape = 24
+  ) +
+  geom_text_repel(
+    aes(longitude, latitude, label = state_cd),
+    nudge_x = 2,
+    color   = "darkred"
+  ) +
+  xlim(-130, -60) +
+  ylim(20, 55) +
+  theme_void()
+```
+
+### Time Series Plots
+
+Time Series is a dataset where the sequence of points is ordered in time. So the data will present a measurement of any given variable through time periods, such as days, hours, months or any other time period.
+
+Let's see how to visualize time series.
+
+```{r}
+set.seed(10)
+
+# Creating a Dataset
+ts <- tibble(
+  date    = seq(ymd("2022-01-01"), ymd("2022-06-30"), by = "days"),
+  measure = as.integer(runif(181, min = 600, max = 1000) + sort(rexp(181, 0.001)))
+)
+
+ts
+```
+
+Let's start with the most basic plot
+
+```{r}
+# Basic plot
+ts %>%
+  ggplot(aes(date, measure)) +
+  geom_line(linewidth = 0.7) +
+  theme_classic()
+```
+
+If we call the basic plot _basic_plot_, then all we have to do is to add more layers as we want.
+
+```{r}
+# Basic plot
+basic_plot <- ts %>%
+  ggplot(aes(date, measure)) +
+  geom_line(linewidth = 0.7) +
+  theme_classic()
+
+# To change the X axis label format
+
+# Year 4 digit, abbreviated month and day
+basic_plot +
+  scale_x_date(date_labels = "%Y %b %d")
+
+# Abbreviated month, year 2 digit
+basic_plot + 
+  scale_x_date(date_labels = "%b %y")
+```
+
+We can also control the breaks between the labels. For example, we can see the breaks by month or bi-weekly instead of the three month period above.
+
+```{r}
+# Breaks by one month
+basic_plot + 
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+
+# Breaks by bi-weekly month
+basic_plot + 
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%W %y")
+
+basic_plot + 
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%m %d")
+```
+
+We can also select some specific time dates from our time series.
+
+```{r}
+# Closeup on date after 06/01
+basic_plot +
+  scale_x_date(
+    limit       = as_date(c("2022-06-01", "2022-07-01")),
+    date_breaks = "1 week",
+    date_labels = "%m %d"
+  )
+```
+
+### 3D Plots
+
+We can used 3D graphics to represent surfaces. To plot 3D, use the library __{plotly}__.
+
+```{r}
+# Set seet for reproduceability
+set.seed(42)
+
+# Creating a random surface
+surface <- matrix(
+  as.integer(
+    sort(
+      abs(
+        runif(160, 90, 180)
+        )
+      )
+    ),
+  nrow = 80,
+  ncol = 20
+)
+
+# Plotting the surface
+plot_ly(z = ~surface) %>%
+  add_surface()
+```
+
+Another good use of 3D graphics is to see the dimension where the separation of the points occur. Imagine you have tow variables points really close to each other and the separation happens on a third dimension.
+
+That can be seen on a 3D plot.
+
+```{r}
+set.seed(42)
+
+# Variables
+var1 = rnorm(20, mean = 25, sd = 5)
+var2 = var1 + 0.1
+
+#data frame
+my_data <- tibble(
+  var1 = var1,
+  var2 = var2,
+  var3 = 1:20,
+  var4 = rep(c("A","B"), each = 10)
+)
+
+# Plot 2D
+my_data %>% 
+  ggplot(aes(var1, var2, color = var4)) +
+  geom_point() +
+  theme_classic()
+```
+
+The 3D plot
+```{r}
+# Plot 3D
+my_data %>%
+  plot_ly(
+    x      = ~var1,
+    y      = ~var2,
+    z      = ~var3,
+    color  = ~var4,
+    colors = c("royalblue", "coral")
+  ) %>%
+  add_markers()
+```
+
+```{r}
+set.seed(42)
+
+#data frame
+my_data <- tibble(
+  var1 = rnorm(2000, mean = 25, sd = 5),
+  var2 = rnorm(2000),
+  var3 = rnorm(2000)
+)
+
+# Plot 3D
+my_data %>% 
+  plot_ly(
+    x      = ~var1,
+    y      = ~var2,
+    z      = ~var3,
+    color  = ~var3,
+    colors = c("royalblue", "coral", "yellow")
+  ) %>% 
+  add_markers()
+```
+
+### Adding interactivity to the graphics
+
+Add interactivity is helpful because a graphic becomes  ready for a more in-depth analysis, being able to zoom in and out, for example.
+
+To create an interactive plot out of ggplot2 graphic, just combine it with plotly function _ggplotly()_.
+
+```{r}
+# Interactive scatter plot
+
+# Scatterplot of price by carat.
+p <- tbl %>%
+  ggplot(aes(carat, price, color = cut)) + 
+  geom_point(alpha = 0.5) +
+  theme_classic()
+
+ggplotly(p)
+```
+
+```{r}
+#Interactive bar plot
+p2 <- tbl %>% 
+  ggplot(aes(cut)) + 
+  geom_bar() +
+  theme_classic()
+
+ggplotly(p2)
+```

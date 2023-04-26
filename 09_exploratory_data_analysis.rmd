@@ -1,0 +1,853 @@
+---
+title: "9 Exploratory Data Analysis"
+author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
+date: "2022-08-09"
+output: html_document
+---
+
+# Exploratory Data Analysis
+
+## Import Libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(conflicted) # An Alternative Conflict Resolution Strategy
+  conflicts_prefer(dplyr::filter)
+library(GGally)     # Extension to "ggplot2'
+library(reshape2)   # Flexibly Reshape Data: A Reboot of the Reshape Package       
+library(scales)     # Scale Functions for Visualization     
+library(skimr)      # Compact and Flexible Summaries of Data
+library(statsr)     # Companion Software for the Coursera Statistics with R Specialization
+library(tidyverse)  # Easily Install and Load the 'Tidyverse'
+```
+
+## Dataset
+
+The dataset chosen for this project is from American Community Survey 2010-2012 Public Use Microdata Series and can be found in the raw form on the links below:
+
+* Download data here: https://tinyurl.com/2ub3w436
+* Documentation here: https://tinyurl.com/yckh444y
+
+To download the data as seen in this project, go to fivethirtyeight web page on https://github.com/fivethirtyeight/data/tree/master/college-majors, where you will also find the data dictionary for the variables.
+
+### Loading Data
+
+Loading data to RStudio can be done in different forms. You can read a file from your local machine, from the internet or also scrape a web page.
+
+For this exercise, we are reading a CSV file directly from a URL in the Internet. To do such thing, you can use the function _read_csv()_ from the __{readr}__ library.
+
+```{r}
+# Path
+url <- "https://raw.githubusercontent.com/fivethirtyeight/data/master/college-majors/recent-grads.csv"
+
+# Load dataset to RStudio
+tbl <- read_csv(url)
+
+# Remove "url" variable to clean environment
+remove(url)
+
+# Keep a copy of our original data
+tbl_original <- tbl
+```
+
+### Understanding the Data
+
+Most of what we can do with our data will come from the understanding of it.
+Therefore, it is important to look at the documentation and data dictionary to start on the right track.
+
+To view the data, we can use the RStudio viewer or just call a command to bring the top 5 rows.
+
+```{r}
+# View
+View(tbl)
+```
+
+```{r}
+# Alternative, look at the first five rows
+tbl %>%
+  head()
+```
+
+We will start our exploration with the functions _glimpse()_ to see the data types and _skim()_ to look at the descriptive statistics of the data.
+
+```{r}
+# glimpse
+glimpse(tbl)
+```
+
+```{r}
+# To know the number of rows only
+nrow(tbl)
+```
+
+```{r}
+# number of columns
+ncol(tbl)
+```
+
+```{r}
+# dimensions: rows and columns
+dim(tbl)
+```
+
+Ok. We saw a couple of corrections we could make, like transforming the _Major_code_, _Major_ and _Major_category_ in factors, since those are categories.
+
+We could also assign a couple of variables as integers, but that would not have much effect, so it is optional.
+
+```{r}
+# Columns to change to factor
+cols_to_factor <- c("Major", "Major_code", "Major_category")
+```
+
+```{r}
+# Assign variables as factor
+tbl <- tbl %>%
+  mutate(across(all_of(cols_to_factor), factor))
+
+# Check result
+glimpse(tbl)
+```
+
+```{r}
+# Remove variable to keep environment clean
+remove(cols_to_factor)
+```
+
+Next, we will use the function _skim()_ to look at the descriptive stats of this dataset.
+
+```{r}
+# Remove scientific notation
+options(scipen = 999, digits = 3)
+
+# Coefficient of Variance
+stats <- skim(tbl)
+
+stats$numeric.sd / stats$numeric.mean
+
+remove(stats)
+```
+
+```{r}
+# Descriptive stats
+skim(tbl)
+```
+
+```{r}
+# another option, from base R
+summary(tbl)
+```
+
+__We can extract the following insights from the descriptive statistics:__
+
+* We have 173 observations, 21 variables
+* Only one observation with missing data present on variables _Men_, _Women_, _ShareWomen_ and _Total_. Probably the same entry.
+* On average, there are more women enrolled than men overall.
+* There are around 52% of women enrolled in the majors considered.
+* There are much more people employed (~31k) than unemployed (~2.5k), which aligns with the 6% unemployment rate average.
+* Salaries are somewhere between $30k to \$52k a year, on average.
+* There is a balance between jobs requiring college versus not requiring.
+* Looking at the coefficients of variance, we see that the data is very spread or with big tails, what we will confirm with the distribution visualizations.
+
+### Missing Data
+
+As seen in the previous section, there is one entry with missing information that can be removed. Despite the fact that our dataset is small, since it is only one entry, we will remove it.
+
+```{r}
+# Drop NA
+tbl_clean <- tbl %>%
+  drop_na()
+
+# New Dimensions
+dim(tbl_clean)
+```
+
+### Exploring and Visualizing Data
+
+After we looked at the descriptive stats and extracted some insights to get idea of how the data is spread, let's look at the distributions of the variables.
+
+#### Univariate Analysis
+
+Let's start with the visualizations of distributions, focusing on a single variable at a time.
+
+Here are the _histograms_
+
+```{r}
+# Select numeric columns and convert to long format
+numeric_data <- tbl_clean %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "variable",
+    values_to = "value"
+  )
+
+# Function to create histograms for each variable
+create_histogram <- function(variable, data) {
+  p <- data %>%
+    filter(variable == !!variable) %>%
+    ggplot(aes(value)) +
+    geom_histogram(
+      bins  = 20,
+      fill  = "royalblue",
+      color = "gray"
+    ) +
+    scale_x_continuous(expand = c(0, 0)) +
+    scale_y_continuous(expand = c(0, 0)) +
+    labs(
+      x        = "Value",
+      title    = str_c("Histogram of ", variable)
+    ) +
+    theme_classic()
+  
+  return(p)
+}
+
+# Create a list of ggplot objects using purrr::map()
+plots <- map(
+  unique(
+    numeric_data %>% 
+      pull(variable)
+  ),
+  create_histogram,
+  data = numeric_data
+)
+
+# To view a specific plot, use the index, e.g., plots[[1]]...
+plots
+```
+
+We can observe that there are many variables with an exponential behavior, others with a close to normal distribution. Furthermore, there are variables presenting a long tail to the right, so most of the distributions are right skewed, having some values falling on the far right hand side, indicating possible outliers.
+
+A great visual to check outliers is the boxplot, what we will plot next.
+
+```{r}
+# Select numeric columns and convert to long format
+numeric_data <- tbl_clean %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "variable",
+    values_to = "value"
+  )
+
+# Function to create boxplots for each variable
+create_boxplot <- function(variable, data) {
+  p <- data %>%
+    filter(variable == !!variable) %>%
+    ggplot(aes(y = value)) +
+    geom_boxplot(fill = "royalblue", color = "gray") +
+    labs(
+      y     = variable,
+      title = paste("Boxplot of", variable)
+    ) +
+    theme_classic()
+  
+  return(p)
+}
+
+# Create a list of ggplot objects using purrr::map()
+boxplots <- map(
+  unique(
+    numeric_data$variable
+  ),
+  create_boxplot,
+  data = numeric_data
+)
+
+# To view a specific plot, use the index, e.g., boxplots[[1]]
+boxplots
+```
+
+As we anticipated, there are many outliers in the data, distorting the variables distributions and making modeling a little harder, depending on the algorithm to be used.
+
+Finally, we can also plot the QQ-plots, which compares the cumulative distribution of the variable against the cumulative distribution of a normal distribution. The more the points approximate of the diagonal line, more close to a normal distribution the variable is.
+
+```{r}
+# Select numeric columns and convert to long format
+numeric_data <- tbl_clean %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "variable",
+    values_to = "value"
+  )
+
+# Function to create QQ-plots for each variable
+create_qq_plot <- function(variable, data) {
+  p <- data %>%
+    filter(variable == !!variable) %>%
+    ggplot(aes(sample = value)) +
+    stat_qq() +
+    stat_qq_line(color = "royalblue", linewidth = 1) +
+    labs(
+      x     = variable,
+      y     = "Theoretical",
+      title = str_c("QQ-plot of ", variable)
+    ) +
+    theme_classic()
+  
+  return(p)
+}
+
+# Create a list of ggplot objects using purrr::map()
+qq_plots <- map(
+  unique(numeric_data$variable),
+  create_qq_plot,
+  data = numeric_data
+)
+
+# To view a specific plot, use the index, e.g., qq_plots[[1]]
+qq_plots
+```
+
+```{r}
+# We could combine the threeinto one function (possibly even add more plot types)
+
+# Select numeric columns and convert to long format
+numeric_data <- tbl_clean %>%
+  select(where(is.numeric)) %>%
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "variable",
+    values_to = "value"
+  )
+
+# Function to create plots for each variable
+create_plot <- function(variable, data, plot_type) {
+  plot_data <- data %>%
+    filter(variable == !!variable)
+
+  if (plot_type == "histogram") {
+    p <- ggplot(plot_data, aes(value)) +
+      geom_histogram(bins = 20, fill = "royalblue", color = "gray") +
+      scale_x_continuous(expand = c(0, 0)) +
+      scale_y_continuous(expand = c(0, 0)) +
+      labs(
+        x        = "Value",
+        title    = str_c(plot_type, " of ", variable)
+      )
+  } else if (plot_type == "boxplot") {
+    p <- ggplot(plot_data, aes(y = value)) +
+      geom_boxplot(fill = "royalblue", color = "gray") +
+      labs(
+      y        = variable,
+      title    = str_c(plot_type, " of ", variable)
+    )
+  } else if (plot_type == "qqplot") {
+    p <- ggplot(plot_data, aes(sample = value)) +
+      stat_qq() +
+      stat_qq_line(color = "royalblue", linewidth = 1) +
+      labs(
+        x        = variable,
+        y        = "Theoretical",
+        title    = str_c(plot_type, " of ", variable)
+    )
+  } else {
+    stop("Invalid plot_type. Choose 'histogram', 'boxplot', or 'qqplot'.")
+  }
+
+  p <- p +
+    theme_classic()
+
+  return(p)
+}
+
+# Create a list of ggplot objects using purrr::map()
+create_plots <- function(plot_type) {
+  map(
+    unique(numeric_data$variable),
+    create_plot,
+    data      = numeric_data,
+    plot_type = plot_type
+  )
+}
+
+histograms <- create_plots("histogram")
+boxplots   <- create_plots("boxplot")
+qq_plots   <- create_plots("qqplot")
+
+# To view a specific plot, use the index, e.g., histograms[[1]] or boxplots[[1]]
+histograms[1]
+boxplots[1]
+qq_plots[1]
+```
+
+Only _Unemployment_rate_ gets closer to a normal distribution, but is not normal, as per the Shapiro-Wilk test below.
+
+```{r}
+# Normality test for Unemployment_date
+shapiro.test(tbl_clean %>% pull(Unemployment_rate))
+```
+
+#### Multivariate Analysis
+
+Now it is time to check how the variables relate to each other. In a project, the idea is to explore how the explanatory variables (*X*) affect the response variable (*y*).
+
+In this project, we are interested in seeing how the variables affect the _Unemployment_rate_. Thus, it is time to create some questions to lead our exploration.
+
+__What are the strength of linear relationships between the variables__
+
+This question is important to determine correlations and multicolinearity.
+
+```{r}
+# Check linear relationship and correlations
+tbl_clean %>%
+  select(-c(Rank, Major_code, Major, Major_category)) %>%
+  ggpairs(progress = FALSE)
+```
+
+```{r}
+# Correlations plot between numeric variables
+correlation_matrix <- tbl_clean %>%
+  select(-c(Rank, Major_code, Major, Major_category)) %>%
+  cor() %>% 
+  melt()
+
+# Filter the lower triangle of the correlation matrix
+cm_melted_lower <- correlation_matrix %>%
+  
+  # Convert Var1 and Var2 columns to character
+  mutate(
+    Var1 = as.character(Var1),
+    Var2 = as.character(Var2)
+  ) %>% 
+  filter(Var1 < Var2)
+
+# Plot the correlation heatmap
+cm_melted_lower %>% 
+  ggplot(aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "black") +
+  geom_text(aes(label = round(value, 2)), color = "black") +
+  scale_fill_gradient2(
+    low      = "red",
+    high     = "blue",
+    mid      = "white",
+    midpoint = 0,
+    limits   = c(-1, 1)
+  ) +
+  labs(
+    fill = "Correlation",
+    x    = NULL,
+    y    = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90),
+    panel.grid  = element_blank()
+    )
+```
+
+__What are the top 10 majors with the lowest unemployment rate?__
+
+We know, from the descriptive statistics, that there is only one entry for each major.
+So, it is a matter of ordering and plotting the top 10.
+
+```{r}
+# Select only top 10 for plotting
+top10_low_unemploy <- tbl_clean %>% 
+  select(Major, Unemployment_rate) %>% 
+  arrange(Unemployment_rate) %>% 
+  head(10)
+
+# plot
+top10_low_unemploy %>%
+  ggplot(aes(Unemployment_rate, fct_reorder(Major %>% str_to_title(), Unemployment_rate))) +
+  geom_col(color = "royalblue", fill = "royalblue") +
+  geom_text(
+    aes(label = round(Unemployment_rate, 3)),
+    size  = 3,
+    hjust = 1,
+    color = "white"
+    ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  labs(
+    title = "Unemployment Rate by Major",
+    x     = NULL,
+    y     = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```
+
+That is a good insight. We see that there are five courses with no unemployed people. However, we should check also the proportional rate, meaning that the majors with more people enrolled and with lower unemployment rates.
+
+```{r}
+# Select only top 10 for plotting
+top10_proportional <- tbl_clean %>% 
+  mutate(proportion = Total / sum(Total)) %>%
+  select(Major, Unemployment_rate, proportion) %>%
+  arrange(desc(proportion), Unemployment_rate) %>% 
+  head(10)
+
+# plot
+top10_proportional %>%
+  ggplot(aes(Unemployment_rate, fct_reorder(Major %>% str_to_title(), Unemployment_rate))) +
+  geom_col(color = "royalblue", fill = "royalblue") +
+  geom_text(
+    aes(label = round(Unemployment_rate, 3)),
+    size  = 3,
+    hjust = 1,
+    color = "white"
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  labs(
+    title = "Unemployment Rate by Major [Normalized]",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```
+
+The plot looks much better now, with an information that feels more complete than the first one. Proportionally, the majors with best employment rates are spread in different areas, with _Nursing_ making the top of the list with only 4.5% of the students not employed.
+
+__What are the majors with more jobs requiring college (more specialized)__
+
+Let's look at those majors where the college jobs percentage is much higher than the non college jobs.
+
+For that, we can calculate the college jobs over the total
+
+```{r}
+# Difference collge - non-college jobs
+tbl_clean_college_or_not <- tbl_clean %>% 
+  mutate(College_jobs_pct = College_jobs / (College_jobs + Non_college_jobs))
+
+# Look at the top 10 
+tbl_clean_college_or_not %>% 
+  select(Major_category, Major, College_jobs_pct) %>% 
+  arrange(desc(College_jobs_pct)) %>% 
+  head(10)
+```
+
+```{r}
+# Look at the bottom 10 
+tbl_clean_college_or_not %>% 
+  select(Major_category, Major, College_jobs_pct) %>% 
+  arrange(College_jobs_pct) %>% 
+  head(10)
+```
+
+```{r}
+# More specialized by major category
+tbl_clean_college_or_not %>% 
+  select(Major_category, Major, College_jobs_pct, Median) %>% 
+  summarise(
+    mean_coll_pct = mean(College_jobs_pct),
+    med_sal       = mean(Median),
+    .by           = Major_category
+  ) %>% 
+  arrange(desc(mean_coll_pct))
+```
+
+__What are the best median value paying jobs?__
+
+We can check now what jobs are paying the best median salary.
+
+```{r}
+# top 10 best median salaries
+median_salary <- tbl_clean_college_or_not %>% 
+  arrange(desc(Median)) %>% 
+  head(10)
+
+median_salary %>% 
+  ggplot(aes(Median, fct_reorder(Major %>% str_to_title(), Median))) + 
+  geom_col(fill="royalblue") +
+  geom_text(
+    aes(label = round(Median, 3)),
+    size  = 3,
+    hjust = 1,
+    color = "white"
+  ) +
+  scale_x_continuous(expand = c(0, 0)) +
+  labs(
+    title = "Median by Major",
+    x     = NULL,
+    y     = NULL, 
+    ) +
+  theme_classic() +
+  theme(
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```
+
+The best paying jobs are related to engineering.
+Let's have a look at the median salary by major category.
+
+```{r}
+# Add variable median salaries
+tbl_clean_with_median_salaries <- tbl_clean_college_or_not %>%
+  mutate(
+    median_pay = median(Median),
+    .by        = Major_category
+  )
+
+# Boxplots of the median payments by major
+tbl_clean_with_median_salaries %>% 
+  ggplot(aes(fct_reorder(Major_category, median_pay), Median)) + 
+  geom_boxplot(fill="royalblue") +
+  scale_y_continuous(labels = comma) +
+  expand_limits(
+    x = c(0, NA),
+    y = c(0, NA)
+  ) +
+  labs(
+    title = "Median by Major Category",
+    x     = NULL,
+    y     = NULL
+    ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+We can see that the best paying jobs, according to this dataset, are in the Science, Technology, Engineering and Mathematics (STEM) area. Engineering, specifically, is the first position in the salary rank with more than ten thousand dollars more than the second place.
+
+__Do the majors with more share of women enrolled have higher or lower unemployed rate?__
+
+The second question we are interested in learning is if there is any correlation between the share of women enrolled in a major and how that affects the unemployment rate.
+
+```{r}
+# Correlation between ShareWomen vs Unemployment_rate
+cor(
+  tbl_clean_with_median_salaries %>% pull(ShareWomen),
+  tbl_clean_with_median_salaries %>% pull(Unemployment_rate),
+  method = "spearman"
+)
+```
+
+The correlation is only 6.63%, a very weak correlation. 
+
+Let's look at the graphic to see the linear relationship. We expect to see a spread scatterplot.
+
+```{r}
+tbl_clean_with_median_salaries %>% 
+  ggplot(aes(ShareWomen, Unemployment_rate)) +
+  geom_point(color="royalblue") +
+  labs(
+    title    = "Share of women enrolled vs. Unemployment rate",
+    subtitle = "There is no linear relationship between the two variables, thus the graphic is spread on x and y axes.",
+    x        = NULL,
+    y        = NULL
+  ) +
+  theme_classic() +
+  theme(
+    plot.subtitle = element_text(color = "darkgray", size = 10)
+  )
+```
+
+__Do the majors with more share of women enrolled have a similar salary median?__
+
+The salary difference between men and women is a reality. So let"s check how that is reflected in this dataset.
+
+```{r}
+# Correlation between the variables
+cor(
+  tbl_clean_with_median_salaries %>% pull(ShareWomen),
+  tbl_clean_with_median_salaries %>% pull(Low_wage_jobs)
+)
+```
+
+```{r}
+# Plot ShareWomen vs Low Wage
+tbl_clean_with_median_salaries %>%
+  ggplot(aes(ShareWomen, Low_wage_jobs)) + 
+  geom_point(color = "royalblue") +
+  labs(
+    title    = "Share of Women vs. Low wage jobs",
+    subtitle = str_glue(
+      "The relationship between the variables is still weak [~19%], suggesting that the share of women enrolled
+      in a major does not affect the wages for the major category."),
+    x        = NULL,
+    y        = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(color = "darkgray", size = 10)
+  )
+```
+
+We can go a little further and verify if the mean values of salaries from majors with more than 50% of women is different than the majors with less than 50% of women. We will do that using hypothesis test.
+
+First, we need to create the two groups with summarized data for majors with more or less than 50% share of women.
+
+```{r}
+# Create new column for Share Women higher or lower than 50%
+tbl_clean_women_shares <- tbl_clean_with_median_salaries %>% 
+  mutate(
+    over_under = case_when(
+      ShareWomen > 0.5 ~ "higher",
+      TRUE             ~ "lower"
+    )
+  )
+
+tbl_clean_women_shares
+```
+
+Second, we must separate it in two sets.
+
+We will test the normality of the subsets using Shapiro-Wilk's test.
+
+__Hypothesis Test__
+__Significance level__   = 0.05
+__Ho__ [p-value >= 0.05] = The dataset follows a normal distribution
+__Ha__ [p-value < 0.05]  = The dataset does not follow a normal distribution
+
+```{r}
+set.seed(42)
+
+# Higher than 50% women
+higher_women <- tbl_clean_women_shares %>%
+  filter(over_under == "higher") %>% 
+  select(Major, Major_category, Low_wage_jobs)
+
+# Lower than 50% women
+lower_women <- tbl_clean_women_shares %>% 
+  filter(over_under == "lower") %>% 
+  select(Major, Major_category, Low_wage_jobs)
+
+# Normality tests
+shapiro.test(higher_women$Low_wage_jobs)
+shapiro.test(lower_women$Low_wage_jobs)
+```
+
+Both distributions are not normal, as we saw in the normality tests.
+
+So, before we move on with a T-Test to check the differences between averages of both groups, lets create a sampling of these two datasets to create close to normal datasets of averages.
+
+```{r}
+set.seed(42)
+
+# Sampling from Higher Share Women
+higher_women_n <- higher_women %>%
+  rep_sample_n(
+    size    = 1000,
+    reps    = 100,
+    replace = TRUE
+  ) %>%
+  summarise(mu = mean(Low_wage_jobs))
+
+# Sampling from Lower Share Women
+lower_women_n <- lower_women %>%
+  rep_sample_n(
+    size    = 1000,
+    reps    = 100,
+    replace = TRUE
+  ) %>%
+  summarise(mu = mean(Low_wage_jobs))
+
+# Normality tests
+shapiro.test(higher_women_n %>% pull(mu))
+shapiro.test(lower_women_n %>% pull(mu))
+```
+
+From the normality tests just performed, we can see that the datasets _higher_women_n_ and _lower_women_n_ created using a sampling technique are now normaly distributed. We are ok to test the averages difference now.
+
+Again, this is a hypothesis test, so the data is as follows:
+__Significance level__   = 0.05
+__Ho [p-value >= 0.05]__ = Both averages are statistically not different
+__Ha [p-value < 0.05]__  = Both averages are statistically different
+
+```{r}
+# T-test to check if the averages of both groups
+t.test(
+  x           = higher_women_n %>% pull(mu),
+  y           = lower_women_n %>% pull(mu),
+  alternative = "two.sided"
+)
+```
+
+The p-value is close to zero, indicating that we can reject the null hypothesis in favor of the alternative. _There is statistical evidence indicating that the averages are different._
+
+In practice, we can infer with 95% confidence that the majors with 50% or more of women enrolled have, on average, more low wage jobs related to them.
+
+__What is the median salary for majors with more than 50% share of women enrolled versus the other majors?__
+
+To answer that question, we must group the data by lower than 50% and higher that 50%. We will use the _over_under_ variable previously created.
+
+```{r}
+# Group data
+median_salary_w <- tbl_clean_women_shares %>% 
+  summarise(
+    med_sal = mean(Median),
+    .by     = over_under
+    )
+
+# Plot a Boxplot graphic
+tbl_clean_women_shares %>% 
+  ggplot(aes(over_under, Median)) + 
+  geom_boxplot(fill = "royalblue") +
+  labs(
+    title    = "Average Salary When ShareWomen is lower/higher than 50%",
+    subtitle = str_glue(
+      "The average salary for majors with more women enrolled is lower than the majors with less women,
+      reinforcing the perception that women are getting lower salaries."),
+    x        = "50% Share of Women",
+    y        = NULL
+  ) +
+  geom_text(
+    data = median_salary_w,
+    aes(
+      over_under,
+      med_sal,
+      label = round(med_sal)
+    ),
+    size  = 4,
+    vjust = 1,
+    color = "white"
+  ) +
+  theme_classic() +
+  theme(
+    plot.subtitle = element_text(color = "darkgray", size = 10)
+  )
+```
+
+Let's see the difference in terms of percentages.
+
+```{r}
+# Percentage difference between averages
+str_c(
+  "The percentual difference between both averages is ",
+  round((median_salary_w[1,2] - median_salary_w[2,2]) / median_salary_w[1,2], 3) * 100,
+  "%"
+) %>% 
+  cat()
+```
+
+It is a considerable difference between the groups averages.
+
+__Is there any correlation between College Jobs and Unemployment rate?__
+
+In the sequence, the intent is to explore if the majors with lower unemployment rates are related with more or less college jobs. For that, we will calculate the correlation and plot the graphic, just like the previous question.
+
+```{r}
+# Correlation between ShareWomen vs Unemployment_rate
+cor(
+  tbl_clean_women_shares %>% pull(College_jobs),
+  tbl_clean_women_shares %>% pull(Unemployment_rate),
+  method = "spearman"
+)
+```
+
+The correlation is only 11%, suggesting a weak linear relationship. Let's see the plot now.
+
+```{r}
+tbl_clean_women_shares %>% 
+  ggplot(aes(College_jobs, Unemployment_rate)) +
+  geom_point(color="royalblue") +
+  labs(
+    title    = "College Jobs vs. Unemployment rate",
+    subtitle = "Weak linear relationship between the variables. No clear pattern."
+  ) +
+  theme_classic() +
+  theme(
+    plot.subtitle = element_text(color = "darkgray", size = 9)
+  )
+```
+
+The take-away from the preceding graphic is that there is not a linear relationship and apparently there is not a clear association between the variables. The scatterplot shows that while the College jobs increase in numbers, the Unemployment rate does not increase or decrease in any proportion that is related to the variance of the College jobs.

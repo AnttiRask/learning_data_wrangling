@@ -1,0 +1,794 @@
+---
+title: "4 Working with Strings"
+author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
+date: "2022-07-03"
+output: html_document
+---
+
+# Introduction to StringR
+
+This library is part of the `tidyverse` package and brings you many tools to work with strings.
+
+## Load Libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(conflicted) # An Alternative Conflict Resolution Strategy
+  conflicts_prefer(dplyr::filter)
+library(ggraph)     # An Implementation of Grammar of Graphics for Graphs and Networks
+library(gmodels)    # Various R Programming Tools for Model Fitting
+library(gutenbergr) # Download and Process Public Domain Works from Project Gutenberg
+library(igraph)     # Network Analysis and Visualization
+library(janitor)    # Simple Tools for Examining and Cleaning Dirty Data
+library(knitr)      # A General-Purpose Package for Dynamic Report Generation in R
+library(SnowballC)  # Snowball Stemmers Based on the C 'libstemmer' UTF-8 Library
+library(tidytext)   # Text Mining using 'dplyr', 'ggplot2', and Other Tidy Tools
+library(tidyverse)  # Easily Install and Load the 'Tidyverse'
+library(textstem)   # Tools for Stemming and Lemmatizing Text
+library(tm)         # Text Mining Package
+```
+
+## Creating a string
+
+To create a string, use single or double quotes
+
+```{r}
+string1 <- "I am a string"
+string2 <- "me too"
+string3 <- 'quote inside "quote", use single quote for the string and double for the text.'
+
+# Printing
+print(string1)
+string1 # works as well without writing print()
+
+writeLines(string2)
+cat(string3)
+```
+
+### Detecting Patterns
+
+Detect if a string has a given pattern.
+
+```{r}
+# Create a string
+text <- "hello"
+
+# Detect if the string has the letters "rt"
+str_detect(text, "rt")
+
+# Detect if the string has the letters "ll"
+str_detect(text, "ll")
+
+# Create a phrase
+text <- "hello, world!"
+
+# Detect if the string has the word "world"
+str_detect(text, "world")
+```
+
+Determine if a string starts with a pattern.
+
+This can be useful to classify texts, for example
+
+```{r}
+# Create strings
+my_id <- "ORDER-1234"
+
+# Starts with
+str_starts(
+  string  = my_id, 
+  pattern = "ORDER"
+)
+```
+
+Find the index of a pattern
+
+```{r}
+
+# Create vector
+shop_list <- c("fruit", "vegetable", "pasta")
+
+# Index of "pasta"
+str_which(
+  string  = shop_list,
+  pattern = "pasta"
+  )
+```
+
+Find location of a pattern
+
+```{r}
+shop_list <- c("fruit", "vegetable", "pasta")
+
+str_locate(shop_list, "pasta")
+```
+
+Counting pattern
+
+```{r}
+# Text
+text <- "I want want want to count the repetitions of want in this phrase. Do you want the same"
+
+# Count occurrences of want
+str_count(text, "want")
+```
+
+### Subset Strings
+
+Extract only the text between the start and end defined in the function.
+
+```{r}
+# Create strings
+my_id <- "ORDER-1234"
+
+# Count occurrences of want
+str_sub(
+  my_id,
+  start = 1,
+  end   = 5
+)
+```
+
+Return only the matches
+
+```{r}
+# Text
+my_ids <- c("ORDER-1234", "ORDER-2234", "MAINT-1234", "MAINT-2234")
+
+# Return orders
+str_subset(my_ids, "ORDER")
+```
+
+### Manage Lengths
+
+Length of Strings
+
+```{r}
+# text
+text <- "What is the size of this string?"
+
+# Length
+str_length(text)
+```
+
+Trim
+
+```{r}
+# text
+text <- " Text    to  be trimmed. "
+
+#trim
+str_trim(text, side = "both")
+
+# squish
+str_squish(text)
+```
+
+### Mutate Strings
+
+Change letter case
+
+```{r}
+# text
+text <- "Hello world."
+
+# to UPPERCASE
+str_to_upper(text)
+
+# to lowercase
+str_to_lower(text)
+
+# to Title Case
+str_to_title(text)
+```
+
+Replace a pattern
+
+```{r}
+# text
+text <- "Hello world. The world is beautiful!"
+
+# Replace a pattern
+str_replace(text, "world", "day")
+
+# Replace all the patterns at once
+str_replace_all(text, "world", "day")
+```
+
+### Join and Split
+
+#### Join
+
+```{r}
+# text
+s1 <- "Hello"
+s2 <- "world!"
+
+# concatenate
+str_c(s1, s2, sep = " ")
+```
+
+#### Split
+
+```{r}
+#text
+text <- "I am learning how to split strings"
+
+# split
+str_split(text, pattern = " ")
+```
+
+Order strings
+
+```{r}
+# text
+shop_list <- c("bananas", "strawberries", "avocado", "pasta")
+
+# ordinate
+str_sort(shop_list, decreasing = FALSE)
+```
+
+# Working with Regular Expressions
+
+## Escape Patterns
+
+We can use an escape character – double backslashes \\ – to tell the computer: “hey, if I say \\., I am actually trying to look for a dot”. You can run this code `?"'"` to see other escape patterns.
+
+```{r}
+# text
+txt <- "Looking for a ."
+
+# Regex escape
+str_view_all(txt, pattern = "\\.")
+```
+
+Find a single character.
+
+```{r}
+# text
+txt <- "This is a text for us to learn RegEx 101! Ok?"
+
+# Find a single character
+str_view_all(txt, "r")    # for single character
+str_view_all(txt, "rn")   # for multiple characters
+str_view_all(txt, "[rn]") # [] for multiple single characters
+```
+
+Find numbers, text or punctuation
+
+```{r}
+# Find numbers
+str_view_all(txt, "[:digit:]")
+
+# Find letters
+str_view_all(txt, "[:alpha:]")
+
+# Find punctuation
+str_view_all(txt, "[:punct:]")
+
+# Find spaces
+str_view_all(txt, "[:space:]")
+```
+
+## Basic codes
+
+```{r}
+# text
+txt <- "This is a text for us to learn RegEx 101! Ok?"
+
+# Find a single character (case sensitive)
+"Find a single character"
+str_view_all(txt, "[a-zA-Z]")
+str_view_all(txt, "[a-z]")
+
+# Not match: is
+"Not match: is"
+str_view_all(txt, "[^is]")
+```
+
+```{r}
+# Extract digits
+"Extract digits"
+str_extract_all(txt, "\\d")
+
+# Extract non-digits
+"Extract non-digits"
+str_extract_all(txt, "\\D")
+
+# Extract 'words'
+"Extract 'words'"
+str_extract_all(txt, "\\w")
+
+# Extract non-'words'
+"Extract non-'words'"
+str_extract_all(txt, "\\W")
+
+# Extract white spaces
+"Extract white spaces"
+str_extract_all(txt, "\\s")
+
+# Extract non-white spaces
+"Extract non-white spaces"
+str_extract_all(txt, "\\S")
+```
+
+```{r}
+# Begins with T
+"Begins with T"
+str_view_all(txt, "^T")
+
+# Ends with ?
+"Ends with ?"
+str_view_all(txt, "\\?$")
+
+# Boundaries
+"Boundaries"
+str_view_all(txt, "\\btext\\b")
+
+# Pattern can happen zero or more times
+"Pattern can happen zero or more times"
+str_view_all(txt, "[E*]")
+
+# Pattern can happen one or more times
+"Pattern can happen one or more times"
+str_view_all(txt, "R+")
+```
+
+Let's download this public domain book Alice’s Adventures in Wonderland, by Lewis Carrol.
+We will use the text to learn more about stringr.
+
+
+```{r}
+# Download Alice's Adventures in Wonderland
+alice <- gutenberg_download(gutenberg_id = 11)
+
+alice
+```
+
+If we want to know how many times the word Alice happens in the text, here is a possible solution.
+
+```{r}
+# Exact Match of Alice
+"Exact Match of Alice"
+alice %>%
+  pull(text) %>% 
+  str_count("Alice") %>%
+  sum()
+
+# How many digits in the text?
+"How many digits in the text?"
+alice %>%
+  pull(text) %>% 
+  str_count("[:digit:]") %>%
+  sum()
+
+# How many written numbers 1-5. | means “or”.
+"How many written numbers 1-5. | means 'or'."
+alice %>%
+  pull(text) %>% 
+  str_count("one|two|three|four|five") %>%
+  sum()
+
+# How many words in UPPERCASE
+"How many words in UPPERCASE"
+alice %>%
+  pull(text) %>% 
+  str_count("\\b[A-Z]+\\b") %>%
+  sum()
+
+# Count the gerund words, ending in "ing"
+"Count the gerund words, ending in 'ing'"
+alice %>%
+  pull(text) %>% 
+  str_count("\\b(\\w+ing)") %>%
+  sum()
+```
+
+List the gerund words
+
+```{r}
+# Extract the gerund words, ending in "ing"
+gerunds <- alice %>%
+  pull(text) %>%
+  str_extract_all("\\b(\\w+ing)")
+
+# Show only the values
+unlist(gerunds)
+```
+
+```{r}
+# Show only the unique values (regardless of the original case)
+gerunds %>% 
+  unlist() %>%
+  str_remove_all("_") %>%
+  str_to_lower() %>%
+  str_sort() %>%
+  str_unique()
+```
+
+# Creating Frequency Data Summaries in R
+
+## Creating a data summary of the words ending with "ing" in the book
+
+```{r}
+# Extract the "ing" ending words and transform them into a vector
+ings <- alice %>%
+  pull(text) %>% 
+  str_extract_all("\\b(\\w+ing)") %>% 
+  unlist()
+
+# Let's count the unique words
+ings_tbl <- ings %>%
+  str_remove_all("_") %>%
+  str_to_lower() %>%
+  as_tibble() %>%
+  summarize(
+    n   = n(),
+    .by = value
+  )
+
+ings_tbl
+```
+
+```{r}
+# Sorting descending and collecting the top 10 most frequent observations
+ings_tbl_top_10 <- ings_tbl %>% 
+  arrange(desc(n)) %>%
+  slice_head(n = 10)
+
+ings_tbl_top_10
+```
+
+Creating a complete data summary of the main characters of the book
+
+```{r}
+# List characters
+characters <- c("Alice", "Rabbit", "Queen", "King", "Cheshire Cat", "Duchess", "Caterpillar", "Hatter")
+
+# Create regex string
+char_regex <- characters %>% 
+  str_c(collapse = "|")
+
+char_regex
+```
+
+```{r}
+# Make the entire text Title Case for better match
+alice_title_case <- alice %>% 
+  pull(text) %>%
+  str_to_title()
+
+# Extract the words
+book_chars <- alice_title_case %>%
+  str_extract_all(char_regex) %>% 
+  unlist()
+
+# Data Frequency to data.frame
+book_chars_tbl <- book_chars %>%
+  as_tibble() %>%
+  summarize(
+    n   = n(),
+    .by = value
+  ) %>% 
+  arrange(desc(n))
+
+book_chars_tbl
+```
+
+Enhance the frequency table
+
+```{r}
+book_chars_tbl %>% 
+  arrange(desc(n)) %>% 
+  # Add percentages rounded to 3 decimals
+  mutate(
+    pct        = round(proportions(n), 3),
+    # Add cumulative sum of the pct
+    pct_cumsum = cumsum(pct)
+  )
+```
+
+```{r}
+#Load the data
+data("mtcars")
+
+# Create the contingency table
+mtcars %>% 
+  tabyl(
+    cyl,
+    gear
+  ) %>%
+  adorn_totals(c("row", "col")) %>%
+  adorn_percentages("row") %>% 
+  adorn_pct_formatting(rounding = "half up", digits = 1) %>%
+  adorn_ns() %>%
+  adorn_title("combined")
+```
+
+## Factors
+
+Factor is a type of object to create categorical variables in R.
+We can create factors with ordered levels or not.
+
+```{r}
+# Textual variable
+var <- c("A", "B", "B", "C", "A", "C")
+
+# To create a factor
+factor_var <- factor(var)
+
+factor_var %>% levels()
+```
+
+To create levels with hierarchical order, use the following code _levels()_.
+The order created was C < B < A
+
+```{r}
+# Ordered levels
+levels(factor_var) <- c("C","B","A")
+
+factor_var
+```
+
+# Text Mining with __{tidytext}__
+
+Let's load a book from the _gutenberg_ library.
+
+```{r}
+# Downloading "The Time Machine" by H. G Wells
+book <- gutenberg_download(gutenberg_id = 35)
+
+book
+```
+
+Let's tokenize the book.
+
+```{r}
+# Tokenization
+book %>% 
+  unnest_tokens(input = text, output = "tokens") %>% 
+  select(-gutenberg_id)
+```
+
+Cleaning stop words.
+
+```{r}
+# Tokenization and clean stop words
+clean_tokens <- book %>% 
+  unnest_tokens(input = text, output = "tokens") %>%
+  select(-gutenberg_id) %>%
+  anti_join(stop_words, by = c("tokens" = "word"))
+
+clean_tokens
+```
+
+Let's make a word count now.
+
+```{r}
+# Counting words frequency
+clean_tokens %>% 
+  count(tokens, sort = TRUE)
+```
+
+## Stemming
+
+Stemming uses the stem (root) of the word to reduce the number of 
+variations of a word in an analysis. This way, word variations like say, saying will be reduced to its root "sai", what not always will make sense, but still can be useful.
+
+```{r}
+# Stemming
+clean_tokens %>%
+  mutate(stem = wordStem(tokens)) %>%
+  count(stem, sort = TRUE)
+```
+
+## Lemmatization
+
+Lemmatization, on the other hand, will rely on the word’s lemma, that is the word’s basic meaning. The lemma takes in account the context in which the word is being used. Hence, the same words say, saying will become simply say, that is the basic meaning of both variations.
+
+Here is a function to take in a text object and create a clean Corpus
+
+```{r}
+# This function takes the text in, transforms it in a corpus object and cleans it, removing punctuation, white spaces, stopwords.
+clean_corpus <- function(text) {
+  # Transform text to Corpus, so we have the functions
+  corp <- Corpus(VectorSource(text)) %>%
+    # All text to lowercase
+    tm_map(tolower) %>%
+    # Text to Plain text
+    tm_map(PlainTextDocument) %>%
+    # Removing numbers
+    tm_map(removeNumbers) %>%
+    # Removing punctuation
+    tm_map(removePunctuation) %>%
+    # Removing stopwords
+    tm_map(removeWords, c(stopwords("english"), "...", '”', "—")) %>%
+    # Strip white space
+    tm_map(stripWhitespace)
+}
+```
+
+Let's apply the function to our book
+
+```{r, warning=FALSE}
+# Clean text
+clean_text <- book %>% 
+  pull(text) %>% 
+  clean_corpus()
+
+# Lemmatization
+clean_lem      <- tm_map(clean_text, lemmatize_strings)
+TDM            <- TermDocumentMatrix(clean_lem)
+TDM            <- as.matrix(TDM)
+word_frequency <- sort(rowSums(TDM), decreasing = TRUE)
+lemm_df        <- data.frame(word = names(word_frequency), freq = word_frequency)
+
+# Remove word == “ or ”
+lemm_df <- lemm_df %>% filter(!word %in% c('“', '”') )
+
+# View head
+head(lemm_df, n = 10)
+```
+
+## Term Frequency - Inverse Document Frequency [TF-IDF]
+
+The _Term Frequency (TF)_ will measure how many times a token appears in a document. The calculation of the TF for each word within a document is as simple as [TF] / [Total terms]. So, the TF for dog in d1 is 2/6 = 0.33, in d2 it is 1/6 = 0.17, and 0/4 = 0 in d3. Therefore, the word dog is more frequent in d1 than in any other document.
+
+The _Inverse Document Frequency (IDF)_ will measure how important a term is. It calculates a logarithm of the inverted frequency. So, log([Number Documents]/ N Docs with the term]). This calculation will decrease in importance terms that are very frequent in every document and will scale up terms that are more rate. The IDF for dog is log(3/2) = 0.4054.
+
+To create the TF-IDF, we must separate the book in different documents. We will do that by separating the chapters.
+
+```{r}
+# Add column with the indexes
+tokens_by_chapter <- clean_tokens %>% 
+  mutate(idx = 1:nrow(clean_tokens)) %>% 
+  select(idx, tokens)
+
+# Finding indexes
+idx <- tokens_by_chapter %>% 
+  filter(
+    tokens %in%
+      c(
+        "ii",
+        "iii",
+        "iv",
+        "v",
+        "vi",
+        "vii",
+        "viii",
+        "ix",
+        "x",
+        "xi",
+        "xii",
+        "xiii",
+        "xiv",
+        "xv",
+        "xvi", 
+        "introduction",
+        "epilogue"
+      ) &
+      idx > 46
+  )
+
+# Adding the chapter column
+tokens_by_chapter <- tokens_by_chapter %>% 
+  mutate(chapter = 
+           case_when(
+             idx < 621                  ~ "introduction",
+             between(idx, 621, 1045)    ~ "ii",
+             between(idx, 1045, 1764)   ~ "iii",
+             between(idx, 1764, 2566)    ~ "iv",
+             between(idx, 2566, 3143)   ~ "v",
+             between(idx, 3143, 3930)   ~ "vi",
+             between(idx, 3930, 4695)   ~ "vii",
+             between(idx, 4695, 6098)   ~ "viii",
+             between(idx, 6098, 6825)   ~ "ix",
+             between(idx, 6825, 7670)   ~ "x",
+             between(idx, 7670, 8509)   ~ "xi",
+             between(idx, 8509, 9407)   ~ "xii",
+             between(idx, 9407, 9777)   ~ "xiii",
+             between(idx, 9777, 10537)  ~ "xiv",
+             between(idx, 10537, 10700) ~ "xv",
+             between(idx, 10700, 11171) ~ "xvi",
+             idx >= 11171               ~ "epilogue"
+           )
+  ) %>% 
+  select(chapter, tokens)
+
+# Words by chapter
+tokens_by_chapter <- tokens_by_chapter %>%
+  count(tokens, chapter, sort = TRUE)
+
+# TF-IDF calculation
+data_tf_idf <- tokens_by_chapter %>%
+  bind_tf_idf(tokens, chapter, n)
+
+data_tf_idf
+```
+
+Now, the next snippet is to plot the analysis.
+
+```{r}
+# Data to plot
+plot_tf_idf <- data_tf_idf %>%
+  group_by(chapter) %>%
+  slice_max(tf_idf, n = 5, with_ties = FALSE) %>%
+  ungroup()
+
+#Plot TF-IDF
+plot_tf_idf %>% 
+  ggplot(aes(tf_idf, fct_reorder(tokens, tf_idf), fill = chapter)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(vars(chapter), ncol = 4, scales = "free") +
+  labs(
+    x = "tf-idf",
+    y = NULL
+  )
+```
+
+## N-grams
+
+N-grams are groups of N words in sequence. Text mining projects tend to work with bi-grams or tri-grams, which are the groups of 2 and 3 words in sequence.
+
+```{r}
+# Most frequent 2-grams
+book %>%
+  unnest_tokens(
+    input  = text,
+    output = ngrams,
+    token  = "ngrams",
+    n      = 2
+  ) %>% 
+  count(ngrams, sort = TRUE)
+```
+
+We could use the clean data to compare.
+
+```{r, warning=FALSE}
+# Gather clean text
+clean_text <- clean_tokens %>% 
+  select(tokens) %>% 
+  str_c(
+    sep      = " ",
+    collapse = NULL
+  ) %>% 
+  as_tibble()
+
+# Most frequent 2-grams
+clean_text %>%
+  unnest_tokens(
+    input  = value,
+    output = ngrams,
+    token  = "ngrams",
+    n      = 2
+  ) %>% 
+  count(ngrams, sort = TRUE)
+```
+
+Here is an extra code for a plot of the network created by related words and chapters.
+
+```{r}
+# Counting words frequency
+word_freq <- clean_tokens %>% 
+  count(tokens, sort = TRUE)
+
+set.seed(1234)
+tokens_by_chapter %>%
+  filter(n >= 8) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(
+    aes(
+      edge_alpha = n,
+      edge_width = n
+    ),
+    edge_colour = "cyan4"
+  ) +
+  geom_node_point(size = 5) +
+  geom_node_text(
+    aes(label = name),
+    repel         = TRUE,
+    point.padding = unit(0.2, "lines")
+  ) +
+  theme_void()
+```
+

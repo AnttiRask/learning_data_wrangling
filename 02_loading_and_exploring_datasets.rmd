@@ -10,169 +10,94 @@ output: html_document
 ## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
-# Baseline
 library(conflicted) # An Alternative Conflict Resolution Strategy
   conflicts_prefer(dplyr::filter)
-  conflicts_prefer(reshape2::melt)
-library(tidyverse)  # Easily Install and Load the 'Tidyverse'
-
-# Loading Files
 library(data.table) # Extension of `data.frame`
-library(datasets)   # The R Datasets Package
-
-# A Workflow for Data Exploration
-library(GGally)   # Extension to 'ggplot2'
-library(lindia)   # Automated Linear Regression Diagnostic
-library(mice)     # Multivariate Imputation by Chained Equations
-library(reshape2) # Flexibly Reshape Data: A Reboot of the Reshape Package
-
-# Basic Web Scraping adn APIs
-library(httr)     # Tools for Working with URLs and HTTP
-library(jsonlite) # A Simple and Robust JSON Parser and Generator for R
-library(rvest)    # Easily Harvest (Scrape) Web Pages
+library(GGally)     # Extension to 'ggplot2'
+library(httr)       # Tools for Working with URLs and HTTP
+library(jsonlite)   # A Simple and Robust JSON Parser and Generator for R
+library(lindia)     # Automated Linear Regression Diagnostic
+library(magrittr)   # A Forward-Pipe Operator for R
+library(mice)       # Multivariate Imputation by Chained Equations
+library(rvest)      # Easily Harvest (Scrape) Web Pages
+library(tidyverse)  # Easily Install and Load the 'Tidyverse'
 ```
 
-### 1. Let's load a file from the built-in datasets from R
+## Load a built-in dataset
 
 ```{r}
-# Loading a preinstalled dataset to R
-data("Orange")
-```
-
-We can perform the same task, but loading it to a different variable name.
-
-```{r}
-# Load the dataset to a different variable name
 df <- Orange
 ```
 
-### 2. We can save the file to a CSV now with the following code.
-
-It will be saved to the same folder where your script or RProj file is saved. To know where it is being saved, use the command _getwd()_ on your Console screen.
+## Save the dataset to a CSV
 
 ```{r}
-# Save a variable to csv
-write.csv(df, "data/oranges_saved.csv", row.names = FALSE)
-
-# write_csv() <- didn't delete this yet, but this must an error!
+write_csv(df, "data/oranges_saved.csv")
 ```
 
 ## Loagind CSV files
 
-### 3.1 Next we are going to load the same dataset _Orange_ from a CSV file in our local machine.
+### Load dataset from CSV
 
 ```{r}
-# Load dataset from csv using base R
-path = "data/oranges.csv"
-
-df <- read.csv(path)
-
-df
+path    <- "data/oranges.csv"
+df_base <- read.csv(path)
+df_tbl  <- read_csv(path)
+df_dt   <- fread(path)
 ```
 
-### 3.2. We can also load a csv file using the __{readr}__ library from the __{tidyverse}__ package.
+### Load dataset with missing values and specific rows/columns
 
 ```{r}
-# setup the file path
-path = "data/oranges.csv"
+path2 <- "data/oranges_modified.csv"
 
-# Load the file
-df <-  read_csv(path)
+df_na <- read_csv(path2, na = c("", "No Record")) %>%
+  mutate(circumference...4 = as.numeric(circumference...4))
 
-df
+df_na
 ```
 
-### 3.3 Another option is to load a csv file is _fread()_ function from the __{data.table}__ package.
 
 ```{r}
-# setup the file path
-path = "data/oranges.csv"
-
-# Load the file
-df <- fread(path)
-
-df
-```
-
-We can list the strings that should be considered missing values (NA).
-In the example below, we're considering blank values and "No Record".
-
-```{r}
-# Listing entries to consider NA
-
-# setup the file path
-path2 = "data/oranges_modified.csv" # There was no file of this name, but I created one
-
-df <- read_csv(path2, na = c("", "No Record")) %>%
-
-  # It's good to note that since there is also text ("No Record") in that circumference...4 column, we need to change it to numeric with this added line:
-  mutate(circumference...4 = circumference...4 %>% as.numeric())
-```
-
-```{r}
-df
-```
-
-Load a file with restrictions of quantity of rows and/ or columns to be loaded.
-
-```{r}
-# Load a file with only the original columns and 10 rows
-df <- read_csv(
+df_restricted <- read_csv(
   path2,
   col_select = c(1, 2, 3),
   n_max      = 10
 )
-```
 
-```{r}
-df %>%
-  head(3)
+df_restricted
 ```
 
 ## Tibble vs Dataframe
 
-### 4.1 Printing
-
-Tibble can print all the variables in the console screen.
+### Printing
 
 ```{r}
-# Print all the columns using tibble
 data("world_bank_pop")
-
-world_bank_pop 
-  # %>% print(width = Inf) <- Unnecessary when using a .rmd file
+world_bank_pop
 ```
-
-Or you can also use the View function to access the built-in viewer from RStudio.
 
 ```{r}
 View(world_bank_pop)
 ```
 
-### 4.2 Column Names
-
-data.frame won't accept non-standard column names unless it changes it. Notice that _my column_ will become _my.column_
+### Column Names
 
 ```{r}
 data.frame(`my column` = c(1, 2, 3))
 ```
 
-Tibble accepts it and won't change it.
-
 ```{r}
 tibble(`my column` = c(1, 2, 3))
 ```
 
-## Comparisons: _read.csv()_ or _read_csv()_?
+## Comparisons: read.csv() or read_csv()?
 
-In this section, let's compare the performances of the CSV readers when loading files in R.
-
-We will track how much time the software takes to load a file with one million observations using both functions.
+### Create a large dataset
 
 ```{r}
 n_observations <- 735999
 
-# Creating a dataset
 data_test <- data.frame(
   ID   = 1:n_observations,
   var1 = runif(n_observations),
@@ -180,60 +105,35 @@ data_test <- data.frame(
   var3 = rnorm(n_observations)
 )
 
-# Saving it to local drive
-write.csv(
-  data_test,
-  "data/test_data.csv",
-  row.names = FALSE
+data_test
+```
+
+```{r}
+write_csv(data_test, "data/test_data.csv")
+```
+
+### Compare loading times
+
+```{r}
+time_read.csv <- system.time(df <- read.csv("data/test_data.csv"))[3]
+time_read_csv <- system.time(df <- read_csv("data/test_data.csv"))[3]
+time_fread    <- system.time(df <- fread("data/test_data.csv"))[3]
+
+comparison <- tibble(
+  name = factor(
+    c("read.csv", "read_csv", "fread"),
+    levels = c("read.csv", "read_csv", "fread")
+  ),
+  time = c(time_read.csv, time_read_csv, time_fread)
 )
 
-head(data_test)
-```
-
-First, let's track the time to load the file using _read.csv()_.
-
-```{r}
-start         <- Sys.time()
-df            <- read.csv("data/test_data.csv")
-end           <- Sys.time()
-time_read.csv <- as.numeric(end - start)
-
-writeLines(str_c("Time elapsed: ", time_read.csv))
-```
-
-Next, let's track the time to load the file using _read_csv()_.
-
-```{r}
-start         <- Sys.time()
-df            <- read_csv("data/test_data.csv")
-end           <- Sys.time()
-time_read_csv <- as.numeric(end - start)
-```
-```{r}
-writeLines(str_c("Time elapsed: ", time_read_csv))
-```
-
-Finally, let's track the time to load the file using _fread()_.
-
-```{r}
-start      <- Sys.time()
-df         <- fread("data/test_data.csv")
-end        <- Sys.time()
-time_fread <- as.numeric(end - start)
-
-writeLines(str_c("Time elapsed: ", time_fread))
-```
-
-Comparing times:
-
-```{r}
-tibble(
-  name = c("read.csv", "read_csv", "fread") %>% as.factor(),
-  time = c(time_read.csv, time_read_csv, time_fread)
-) %>%
-  ggplot(aes(name %>% fct_reorder(time, .desc = TRUE), time)) +
+comparison %>%
+  ggplot(aes(name, time)) +
   geom_col(fill = "royalblue") +
-  scale_y_continuous(expand = c(0, 0)) +
+  scale_y_continuous(
+    expand = c(0, 0),
+    breaks = seq(0, 16, by = 2)
+    ) +
   labs(
     title = "Comparison of time elapsed to read CSV file",
     x     = NULL,
@@ -248,79 +148,49 @@ tibble(
 
 # A Workflow for Data Exploration
 
-## Import Texas Housing Sales to our session
+## Texas Housing Sales
 
 ```{r}
+# Import Texas Housing Sales
 data("txhousing")
 
 # View the dataset
 txhousing
 ```
 
-### 1.1 Check data types
-
-This step is important in object oriented programming languages, such as R, because the type of object determines the methods and attributes we are able to use to analyze it.
-
 ```{r}
 # Check data types
 glimpse(txhousing)
-```
-
-```{r}
-# You can also use str
+str_glue("\n")
 str(txhousing)
 ```
 
-### 1.2 Adjusting data types
-
-We will change _year_, _month_ and _date_ to datetime objects. But before, it is a good practice to create a new variable when making changes to the dataset to preserve the original data and be able to revert, if needed.
-
 ```{r}
-# Let's create a copy of the dataset to preserve the original
-txhouses <- txhousing %>% 
-  
-  # Adjusting data types
+# Adjusting data types
+txhouses <- txhousing %>%
   mutate(
-    city = city %>% as.factor(),
-    date = date_decimal(date, tz = "GMT")
+    city = as.factor(city),
+    date = date_decimal(date, tz = "GMT") %>% as_date()
   )
 
 glimpse(txhouses)
 ```
-
-## Descriptive statistics
-
-This is where we start to really explore the data
 
 ```{r}
 # Descriptive statistics
 summary(txhouses)
 ```
 
-### 2.1 Does each city appear the same number of times? 187
-
-We see that the most frequent cities in our file have the same number, what makes us wonder if there is the same value for each city. So we can get the total number of observations and divide by the number of cities
-
 ```{r}
-nrow(txhouses) / length(unique(txhouses$city))
+# Does each city appear the same number of times? 187
+nrow(txhouses) / length(unique(txhouses %>% pull(city)))
 ```
 
 ## Missing Values
 
-Now it is time to check missing values. They can distort our analysis and models, so it is necessary to handle them. 
-
-Next I will show you a nice way to look for all of the NAs from a dataset at once.
-
 ```{r}
-# Copy the dataset
 idx_notna <- txhouses %>% 
-  
-  #Add an index column
-  mutate(
-    idx = 1:nrow(.)
-  ) %>%
-  
-  # Omit the NAs and get the idx column. The NAs will be the complementary subset, the rows that are not in the subset with omited NA
+  mutate(idx = row_number()) %>%
   na.omit() %>%
   pull(idx)
 
@@ -336,18 +206,6 @@ txhouses %>%
   nrow() / nrow(txhouses)
 ```
 
-But in general, we will work on one variable at a time.
-
-You can go the easy way and drop all the NAs. But that would not be good because we would be losing 17% of our data. That's too much.
-
-```{r}
-# Drop NAs
-txhouses_no_na <- txhouses %>%
-  na.omit()
-```
-
-We will have to combine methods. If you look again on the NAs entries subset, there are many cities that have only the city name, year, month and nothing else. This is a kind of missing data that must be dropped, just because it is not good. Any method here would be creating new data, and that could influence our model.
-
 ```{r}
 # Filter out the rows with 5 NAs
 txhouses_filtered <- txhouses %>%
@@ -356,13 +214,10 @@ txhouses_filtered <- txhouses %>%
 txhouses_filtered
 ```
 
-There are many NAs in listings and inventory. Let's check the proportion NA vs not NA.
-
 ```{r}
-columns_to_check <- c("listings", "inventory", "sales", "volume", "median")
-
+# Proportions of NAs
 proportions_na <- txhouses_filtered %>%
-  select(all_of(columns_to_check)) %>%
+  select(listings, inventory, sales, volume, median) %>%
   summarise(across(everything(), ~ mean(is.na(.)))) %>%
   pivot_longer(
     everything(),
@@ -372,53 +227,48 @@ proportions_na <- txhouses_filtered %>%
 
 proportions_na %>%
   pwalk(function(column, proportion_na) {
-    cat(
-      "\nProportions to", column, ":\n\n",
-      "FALSE", 1 - proportion_na, "\n",
-      "TRUE ", proportion_na, "\n",
-      "--------------------------------", "\n"
+    print(
+      str_glue(
+        "\nProportions to {column}:      \n",
+        "\nFALSE {1 - proportion_na}     \n",
+        "TRUE  {proportion_na}           \n",
+        "--------------------------------\n"
+      )
     )
   })
 ```
 
-### Imputation
-
-For _sales_, _volume_ and _median_, let's use the median value.
+## Imputations
 
 ```{r}
 # Impute median value
 txhouses_imputed <- txhouses_filtered %>% 
   mutate(
-    median = case_when(
-      is.na(median) ~ median(median, na.rm = TRUE),
-      TRUE          ~ median
+    median = if_else(
+      is.na(median), median(median, na.rm = TRUE), median
     ),
-    sales  = case_when(
-      is.na(sales)  ~ median(sales, na.rm = TRUE),
-      TRUE          ~ sales)
-    ,
-    volume = case_when(
-      is.na(volume) ~ median(volume, na.rm = TRUE),
-      TRUE          ~ volume
+    sales  = if_else(
+      is.na(sales), median(sales, na.rm = TRUE), sales
+    ),
+    volume = if_else(
+      is.na(volume), median(volume, na.rm = TRUE), volume
     )
   )
 ```
 
-Let's use the library mice to input data. It uses Regression as predictor for missing values.
-
 ```{r}
-# Use mice inputer
-impute      <- mice(data.frame(txhouses_imputed[,7:8]), seed = 123)
+# Use {mice} imputation
+impute      <- mice(data = txhouses_imputed %>% select(7:8), seed = 123)
 impute_data <- complete(impute, 1) %>% as_tibble()
-
-# Replace the columns with the imputed ones
-txhouses_clean <- txhouses_imputed %>%
-  select(-c(listings, inventory)) %>%
-  bind_cols(impute_data) %>% 
-  select(city:median, listings, inventory, date)
 ```
 
 ```{r}
+# Replace the columns with the imputed ones
+txhouses_clean <- txhouses_imputed %>%
+  select(-c(listings, inventory)) %>%
+  bind_cols(impute_data) %>%
+  select(city:median, listings, inventory, date)
+
 txhouses_clean
 ```
 
@@ -445,15 +295,13 @@ plot_data %>%
   geom_line() +
   scale_color_manual(values = c("Before" = "red", "After" = "blue")) +
   labs(
-    title = "Comparison Before and After Imputation listings and inventory",
+    title = "Comparison Before and After Imputation Listings and Inventory",
     x     = NULL,
     y     = "Density"
   ) +
   theme_classic() +
   theme(legend.title = element_blank())
 ```
-
-The missing data is now gone.
 
 ```{r}
 # Checking missing data
@@ -462,118 +310,115 @@ sum(is.na(txhouses_clean))
 
 ## Data Distributions
 
-It is important so we know the data's variation patterns.
-
 ### Histograms
 
 ```{r}
-# We could do this with tidyverse (mainly ggplot2) and patchwork, but it's really difficult to get the histograms to match the original exactly, so the base R version for this one will do
-
-# Transform to data.frame type for base R plotting
-txhouses_clean_df <- as.data.frame(txhouses_clean)
-
-# Create a grid for plotting multiple histograms
-par(
-  mfrow = c(4, 2),
-  # It's good to add margins. RStudio might not be able to show the plot with the default values.
-  mar   = c(3, 3, 3, 3)
-)
-
-# Plot histograms
-for (var in colnames(txhouses_clean_df[2:8])) {
-  hist(
-    txhouses_clean_df[,var],
-    col    = "blue",
-    main   = str_c("Histogram of ", var),
-    border = "white" )
-}
+txhouses_clean %>% 
+  select(-c(city, date)) %>% 
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "key",
+    values_to = "value"
+  ) %>%
+  mutate(key = str_to_title(key)) %>%
+  ggplot(aes(value)) +
+  geom_histogram(fill = "blue", color = "white") +
+  facet_wrap(vars(key), scales = "free") +
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  theme_classic()
 ```
 
 ### Boxplots
 
 ```{r}
-# Plotting boxplots to check outliers
+txhouses_clean %>%
+  select(listings, inventory, sales, volume, median) %>%
+  pivot_longer(
+    cols      = everything(),
+    names_to  = "key",
+    values_to = "value"
+  ) %>%
+  mutate(key = str_to_title(key)) %>% 
+  ggplot(aes(key, value)) +
+  geom_boxplot(fill = "blue", color = "white") +
+  facet_wrap(vars(key), scales = "free") +
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  theme_classic()
+```
 
-# Create a grid for plotting multiple boxplots
-par(
-  mfrow = c(4,2),
-  mar   = c(3, 3, 3, 3)
-)
+## Checking Quantity and Removing Outliers
 
-# Plot boxplots
-for (var in colnames(txhouses_clean_df[4:8])) {
-  boxplot(
-    txhouses_clean_df[,var],
-    col  = "blue",
-    main = str_c("Boxplot of ", var)
+### Define a function to calculate and print the outlier count
+
+```{r}
+print_outlier_count <- function(tbl, var) {
+  
+  outliers <- tbl %>%
+    summarize(
+      outliers = sum(.data[[var]] < quantile(.data[[var]], 0.25) - 1.5 * IQR(.data[[var]])) +
+        sum(.data[[var]] > quantile(.data[[var]], 0.75) + 1.5 * IQR(.data[[var]]))
+    )
+  
+  print(
+    str_glue(
+      "Variable: {var} \n",
+      "Outlier observations: {outliers} | Pct: ",
+      "{round(outliers / nrow(tbl), 3) * 100} % \n",
+      "----------------------------------------"
+    )
   )
 }
 ```
 
-### Checking Quantity and Removing Outliers
+### Define the create_outlier_condition function
 
 ```{r}
-# Define a function to calculate and print the outlier count
-print_outlier_count <- function(tbl, var, upper_cap, lower_cap) {
-  
-  # Calculate the number of outliers
-  outliers <- tbl %>%
-    filter(.data[[var]] > upper_cap | .data[[var]] < lower_cap) %>%
-    nrow()
-
-  # Print the outlier count
-  cat("Variable:", var, "\n")
-  cat(
-    "Outlier observations:",
-    outliers,
-    "| Pct:",
-    round(outliers / nrow(tbl), 3) * 100, "%",
-    "\n"
-  )
-  writeLines("----------------------------------------")
-}
-
-# Define the create_outlier_condition function
 create_outlier_condition <- function(tbl, var) {
   
-  # Calculate the upper cap for outliers
-  upper_cap <- tbl %>%
-    summarize(upper_cap = quantile(.data[[var]], 0.75) + IQR(.data[[var]]) * 1.5) %>%
-    pull(upper_cap)
-
-  # Calculate the lower cap for outliers
-  lower_cap <- tbl %>%
-    summarize(lower_cap = quantile(.data[[var]], 0.25) - IQR(.data[[var]]) * 1.5) %>%
-    pull(lower_cap)
-
-  # Print the outlier count
-  print_outlier_count(tbl, var, upper_cap, lower_cap)
+  lower_cap <- quantile(tbl[[var]], 0.25, na.rm = TRUE) - 1.5 * IQR(tbl[[var]], na.rm = TRUE)
+  upper_cap <- quantile(tbl[[var]], 0.75, na.rm = TRUE) + 1.5 * IQR(tbl[[var]], na.rm = TRUE)
   
-  # Create a filtering condition for the current variable
+  print_outlier_count(tbl, var)
+  
   tbl %>%
     mutate(is_outlier = .data[[var]] <= upper_cap & .data[[var]] >= lower_cap) %>%
     pull(is_outlier)
 }
+```
 
-# Specify the variables to process
-vars_to_process <- colnames(txhouses_clean[4:8])
+### Specify the variables to process
 
-# Create filtering conditions for each variable
+```{r}
+vars_to_process <- c("inventory", "listings", "median", "sales", "volume")
+```
+
+### Create filtering conditions for each variable
+
+```{r}
 outlier_conditions <- map(
   vars_to_process,
   ~create_outlier_condition(txhouses_clean, .x)
 )
 ```
 
-```{r}
-# Combine the filtering conditions using the reduce() function
-combined_conditions <- reduce(outlier_conditions, `&`)
+### Combine the filtering conditions using the reduce() function
 
-# Apply the combined filtering condition to the original data frame
+```{r}
+combined_conditions <- reduce(outlier_conditions, `&`)
+```
+
+### Apply the combined filtering condition to the original data frame
+
+```{r}
 txhouses_no_outliers <- txhouses_clean %>%
   filter(combined_conditions)
 
-# Check the final data frame
 txhouses_no_outliers
 ```
 
@@ -581,30 +426,22 @@ txhouses_no_outliers
 
 ### Correlations
 
-Important to prevent multicolinearity and good way to determine best variables.
-
 ```{r}
-# Create a correlation matrix excluding non-numeric variables and melt it into a long format for ggplot2
 correlation_matrix <- txhouses_no_outliers %>%
   select(-c(city, date)) %>% 
-  cor() %>% 
-  melt()
+  cor() %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Var1") %>%
+  pivot_longer(
+    cols      = -Var1,
+    names_to  = "Var2",
+    values_to = "Correlation"
+  ) %>% as_tibble()
 
-# Filter the lower triangle of the correlation matrix
-cm_melted_lower <- correlation_matrix %>%
-  
-  # Convert Var1 and Var2 columns to character
-  mutate(
-    Var1 = as.character(Var1),
-    Var2 = as.character(Var2)
-  ) %>% 
-  filter(Var1 < Var2)
-
-# Plot the correlation heatmap
-cm_melted_lower %>% 
-  ggplot(aes(Var1, Var2, fill = value)) +
+correlation_matrix %>%
+  ggplot(aes(Var1, Var2, fill = Correlation)) +
   geom_tile(color = "black") +
-  geom_text(aes(label = round(value, 2)), color = "black") +
+  geom_text(aes(label = round(Correlation, 2)), color = "black") +
   scale_fill_gradient2(
     low      = "red",
     high     = "blue",
@@ -617,38 +454,30 @@ cm_melted_lower %>%
     x    = NULL,
     y    = NULL
   ) +
-  theme_minimal() +
-  theme(panel.grid = element_blank())
+  theme_classic()
 ```
 
 ### Scatterplots
 
 ```{r}
-# Plotting all the scatterplot for pairs of variables
-vars_for_scatter <- c("median", "sales", "volume", "listings", "inventory")
-
-txhouses_no_outliers %>% 
-  select(all_of(vars_for_scatter)) %>% 
-  ggpairs(progress = FALSE)
+txhouses_no_outliers %>%
+  select(median, sales, volume, listings, inventory) %>%
+  ggpairs(progress = FALSE) +
+  theme_bw()
 ```
 
 ## Modeling
 
-### Linear Regression
+### Train Test Split
 
 ```{r}
-# Create a variable with the length of our dataset
-length <- nrow(txhouses_no_outliers)
-
-# Create a random index for data split
-idx    <- sample(1:length, size = length * 0.8)
-
-# Train test split
-train  <- txhouses_no_outliers[idx,]
-test   <- txhouses_no_outliers[-idx,]
-
-train %>% head()
+set.seed(123)
+idx   <- sample(1:nrow(txhouses_no_outliers), nrow(txhouses_no_outliers) * 0.8)
+train <- txhouses_no_outliers[idx, ]
+test  <- txhouses_no_outliers[-idx, ]
 ```
+
+### Linear Regression
 
 ```{r}
 linear_model <- lm(median ~ city + year + month + volume + inventory, data = train)
@@ -656,87 +485,123 @@ linear_model <- lm(median ~ city + year + month + volume + inventory, data = tra
 summary(linear_model)
 ```
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 # Plot the residuals
 linear_model %>%
   gg_diagnose(theme = ggplot2::theme_classic())
 ```
 
-# Basic Web Scraping adn APIs
+### Model Evaluation (extra)
 
-__Disclaimer:__ web scraping is legal, but there are rules and ethics that surrounds it. When you want to scrape something from the web, make sure you are dealing with public data and don't forget to go to the website source and type in www.website.com/robots.txt. For example: https://en.wikipedia.org/robots.txt.
-Those pages will bring you what is allowed or not to be scraped from that website.
+```{r}
+# Predict on test data
+test_predictions <- predict(linear_model, newdata = test)
+
+# Calculate RMSE
+rmse <- sqrt(mean((test %>% pull(median) - test_predictions) ^ 2))
+rmse
+```
+
+```{r}
+# Create a data frame for residuals
+residuals_tbl <- tibble(
+  Predicted = test_predictions,
+  Residuals = test %>% pull(median) - test_predictions
+)
+
+# Plot the residuals
+residuals_tbl %>%
+  ggplot(aes(Predicted, Residuals)) +
+  geom_point() +
+  geom_hline(
+    yintercept = 0,
+    color      = "red", 
+    linetype   = "dashed"
+  ) +
+  labs(
+    title = "Residuals",
+    x     = "Predicted Values",
+    y     = "Residuals"
+  ) +
+  theme_classic()
+```
+
+```{r}
+# Evaluate the normality of residuals
+residuals_tbl %>%
+  ggplot(aes(sample = Residuals)) +
+  geom_qq() +
+  geom_qq_line() +
+  labs(
+    title = "Evaluate the normality of residuals",
+    x     = "Theoretical Quantiles",
+    y     = "Sample Quantiles"
+  ) +
+  theme_classic()
+```
+
+```{r}
+# Evaluate the homoscedasticity of residuals
+residuals_tbl %>% 
+  ggplot(aes(Predicted, Residuals)) +
+  geom_point() +
+  geom_hline(
+    yintercept = 0,
+    color      = "red",
+    linetype   = "dashed"
+  ) +
+  labs(
+    title = "Evaluate the homoscedasticity of residuals",
+    x     = "Predicted Values",
+    y     = "Residuals"
+  ) +
+  theme_classic()
+```
+
+# Basic Web Scraping and APIs
 
 ## Web Scraping from Wikipedia
 
-### rvest
-
-Now we can use __{rvest}__ to scrape pages it the Internet. That is a great way to acquire data.
-
-Let's read the Wikipedia page with the list of GDP by country: https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)
-
 ```{r}
+# Function to scrape Wikipedia page
+scrape_wikipedia <- function(url) {
+  page <- url %>%
+    read_html()
+  
+  title <- page %>%
+    html_elements("title") %>%
+    html_text()
+  
+  paragraph <- page %>%
+    html_elements("p") %>%
+    html_text() %>%
+    extract2(3)
+  
+  table <- page %>%
+    html_elements(xpath = "//*[@id='mw-content-text']/div[1]/table[2]") %>%
+    html_table() %>%
+    extract2(1)
+  
+  return(
+    list(
+      title     = title,
+      paragraph = paragraph,
+      table     = table
+    )
+  )
+}
+
 # Target Page
-page <- "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+url <- "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
 
-# Read the page and store in a variable
-gdp  <- read_html(page)
+# Scrape Wikipedia page
+wiki_data <- scrape_wikipedia(url)
 
-gdp
-```
+# Extract table
+gdp_tbl <- wiki_data$table
 
-Now we have the _gdp_ object with the head and body of the page, but not much we can do with that yet. Let's dig a little more.
-
-This is the title of the page:
-
-```{r}
-# Title of the page
-gdp %>% html_elements("title")
-```
-
-We can remove the HTML elements and see only the text:
-
-```{r}
-# See only the text
-gdp %>% html_elements("h1") %>% html_text()
-```
-
-If we want to extract only the paragraph text:
-
-```{r}
-# Extract the paragraph text only from the gdp page
-gdp %>% html_elements("p") %>% html_text()
-```
-
-From here, let's say we want only the first paragraph, then we can use the following code.
-
-```{r}
-# Extract only paragraph 1 from the web page
-p1 <- gdp %>% html_elements("p") %>% html_text()
-
-# We are using [3] in because the [1] and [2] are just space breaks.
-p1[3]
-```
-
-### Extract table
-
-Now let's move on to what is our interest: to get the table with the countries and GDPs. The real data.
-
-```{r}
-# Extract the table from the page
-gdp_tbl <- gdp %>% 
-  html_elements(xpath = "//*[@id='mw-content-text']/div[1]/table[2]") %>% 
-  html_table() %>% 
-  .[[1]]
-
-gdp_tbl
-```
-
-Now, as we can see, this data is not tidy at the moment. So why don't we continue a bit and make it so?
-
-```{r}
+# Clean the table
 gdp_clean <- gdp_tbl %>%
-  # Let's rename the columns, especially since some of them had duplicate names. Which is the reason why we use the column positions, instead of names, to identify the old columns
   rename(
     country                     = 1,
     un_region                   = 2,
@@ -747,11 +612,7 @@ gdp_clean <- gdp_tbl %>%
     gdp_estimate_united_nations = 7,
     year_united_nations         = 8
   ) %>%
-  
-  # Lets' then drop the first row that contained some of additional column information 
   slice(-c(1:2)) %>%
-  
-  # Then we need to use pivot_longer twice to get the data into a tidier format. The filtering is part of that process, because we want to get rid of any duplicate rows
   pivot_longer(
     cols           = starts_with("gdp_estimate"),
     names_to       = "source",
@@ -767,34 +628,23 @@ gdp_clean <- gdp_tbl %>%
     values_drop_na = TRUE
   ) %>%
   filter(str_remove(source, "gdp_estimate_") == str_remove(year_source, "year_")) %>%
-  
-  # Let's drop this extra column
   select(-year_source) %>%
-  
-  # And finally, let's make the only truly numeric column numeric, turn all the rest of the columns into factors and get rid of all the extra characters
   mutate(
     gdp_estimate = gdp_estimate %>% str_replace_all(",", "") %>% as.numeric(),
-    year         = year %>% str_replace_all("\\[.*\\]", ""),
-    across(where(~is.character(.x)), as.factor)
+    year = year %>% str_replace_all("\\[.*\\]", ""),
+    across(where(~ is.character(.x)), as.factor)
   )
-
-gdp_clean
 ```
 
-We could then start creating visualizations or anything else for that matter.
-
 ```{r}
+# Visualizations
 gdp_clean %>%
-  
-  # We're interested in the avg GDP estimate from the three sources for the top 20 countries
   summarize(
     avg_estimate = mean(gdp_estimate),
     .by = c(un_region, country)
   ) %>%
   arrange(desc(avg_estimate)) %>%
   slice_head(n = 20) %>%
-  
-  # fct_reorder() will help show the countries in the right order
   ggplot(aes(fct_reorder(country, avg_estimate), avg_estimate, fill = un_region)) +
   geom_col() +
   scale_y_continuous(
@@ -803,7 +653,7 @@ gdp_clean %>%
     limits = c(0, 27000000)
   ) +
   scale_fill_viridis_d(
-    option    = "turbo",
+    option = "turbo",
     direction = -1 
   ) +
   coord_flip() +
@@ -823,39 +673,28 @@ gdp_clean %>%
 
 ## API
 
-We are going to pull a Monthly Treasury Statement (MTS) from the US Treasury API.
-
 ```{r}
+# API URL
 url = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/mts/mts_table_1"
 
+# Fetch data from API
 treasury_api <- GET(url)
 ```
 
-It is possible to look at the objects in our content.
-
 ```{r}
-# Check the content in the API
+# Check the content of the API response
 str(content(treasury_api), max.level = 3)
 ```
 
-And to create a dataframe out of it, here is the code needed. We will transform the content in a json text, then parse it and finally extract only the _data_ variable to create our tibble _tbl_.
-
 ```{r}
-# Transforming the results to text
+# Parse JSON data from API response
 result  <- content(treasury_api,"text", encoding = "UTF-8")
-
-# Parsing data in JSON
 df_json <- fromJSON(result, flatten = TRUE)
-
-# Store as data frame
 tbl     <- as_tibble(df_json$data)
-
-tbl
 ```
 
-We can save the file using the following code.
-
 ```{r}
-# Save a variable to csv
+# Save tibble to CSV
 write_csv(tbl, "data/Monthly_Treasury_Statement.csv")
 ```
+

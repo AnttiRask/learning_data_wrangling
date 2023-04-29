@@ -364,7 +364,7 @@ song_by_hour %>%
   )
 ```
 
-### Filter and Investigate Songs Played at 23:00
+#### Filter and Investigate Songs Played at 23:00
 
 ```{r}
 tbl_23 <- tbl_augmented %>% 
@@ -374,7 +374,7 @@ tbl_23 <- tbl_augmented %>%
 tbl_23
 ```
 
-### Checking for Duplicates
+#### Checking for Duplicates
 
 ```{r}
 tbl_23 %>%
@@ -384,7 +384,7 @@ tbl_23 %>%
   pull(difference)
 ```
 
-### Filter Only the Duplicated Rows
+#### Filter Only the Duplicated Rows
 
 ```{r}
 dups <- tbl_23 %>%
@@ -393,7 +393,7 @@ dups <- tbl_23 %>%
 dups
 ```
 
-### Test for Real Duplicates
+#### Test for Real Duplicates
 
 * pmap_lgl(): This function applies a function to each row of the dataset and returns a logical vector (a vector of TRUE and FALSE values). The function to be applied is specified using a formula notation with the tilde (~) symbol.
 * all(.x == lag(.x, n = 1)): The all() function checks if all the elements in a logical vector are TRUE. In this case, it checks if all the elements of the current row (.x) are equal to the elements of the previous row (lag(.x, n = 1)). The lag() function shifts the elements of the row by 1 position (specified by n = 1). If all the elements are equal, all() returns TRUE; otherwise, it returns FALSE.
@@ -408,14 +408,17 @@ real_dup <- dups %>%
 real_dup
 ```
 
+#### Look at duplicates
+
 ```{r}
-# Look at duplicates
+
 dups %>%
   filter(row_number() %in% c(9, 81))
 ```
 
+#### Checking duplicates
+
 ```{r}
-# Checking duplicates
 tbl_original %>%
   filter(
     TIME == ymd_hms("2014-06-19 23:54:25") & COMBINED %in% c(
@@ -425,8 +428,9 @@ tbl_original %>%
   )
 ```
 
+#### Remove duplicates
+
 ```{r}
-# Remove duplicates
 tbl <- tbl_original %>%
   filter(!UNIQUE_ID %in% c("WCSX0949", "WCSX1021", "WCSX0955", "WCSX1005")) %>%
 
@@ -454,7 +458,7 @@ tbl
 ```{r}
 # Group data by weekday
 tbl_by_day <- tbl %>% 
-  summarise(
+  summarize(
     songs_ct = n(),
     .by = c(weekday, hour)
   ) %>% 
@@ -489,7 +493,7 @@ first_time <- tbl %>%
 
 # First Time Songs by Hour
 first_time <- first_time %>% 
-  summarise(
+  summarize(
     song_count = n(),
     .by        = hour
   )
@@ -515,11 +519,11 @@ first_time %>%
 ```{r}
 # Average by Radio by Day
 by_radio <- tbl %>% 
-  summarise(
+  summarize(
     song_count = n(),
     .by = c(call_sign, weekday)
   ) %>% 
-  summarise(
+  summarize(
     avg_song = mean(song_count),
     .by = call_sign
   ) %>% 

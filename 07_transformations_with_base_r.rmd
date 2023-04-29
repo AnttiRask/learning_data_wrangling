@@ -1,21 +1,22 @@
 ---
-title: "7 Transformations with base R"
+title: "7 Transformations with Base R"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-07-21"
 output: html_document
 ---
 
-# Transformations with base R
+# Transformations with Base R
 
-Antti: This whole time I've been transforming base R code to {tidyverse}. And I will continue doing it for the other chapters. This one is the exception, though. Even so, I will still use things like tibble and the pipe operator when it makes sense to do so.
+Antti: This whole time I've been transforming base R code to {tidyverse}. And I will continue to do so for the other chapters. This one is the exception, since the whole point of the chapter is using base R. I will still use things like the tibble and the pipe operator when it makes sense to do so.
 
 ## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
-library(conflicted) # An Alternative Conflict Resolution Strategy 
-library(data.table) # Extension of `data.frame` 
+library(conflicted) # An Alternative Conflict Resolution Strategy
+library(data.table) # Extension of `data.frame`
 library(skimr)      # Compact and Flexible Summaries of Data
 library(tidyverse)  # Easily Install and Load the 'Tidyverse'
+library(zoo)        # S3 Infrastructure for Regular and Irregular Time Series (Z's Ordered Observations)
 ```
 
 ## Dataset
@@ -28,10 +29,10 @@ Dua, D. and Graff, C. (2019). UCI Machine Learning Repository [http://archive.ic
 __URL Address__
 https://archive.ics.uci.edu/ml/datasets/Adult
 
-### Loading the dataset
+### Loading the Dataset
 
 ```{r}
-# Load the dataset to RStudio
+# Load the datase
 tbl <- read.csv(
   "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data",
   header      = FALSE,
@@ -58,12 +59,10 @@ colnames(tbl) <- c(
   "target"
 )
 
-head(tbl)
+tbl
 ```
 
-### Slicing
-
-Slicing is like zooming in our dataset, looking only the parts we need or want to see.
+## Slicing
 
 ```{r}
 # Dataset dimensions
@@ -78,16 +77,20 @@ tbl[1:3, ]
 ```{r}
 # Slicing all rows, columns 1 to 3
 tbl[, 1:3]
+
+# Alternatively
+tbl[, c("age", "workclass", "fnlwgt")]
 ```
 
 ```{r}
 # Slicing with conditional, vector for cols 1 and 6
-tbl[tbl$age > 30, c(1,6)]
+tbl[tbl$age > 30, c(1, 6)]
+
+# Alternatively
+tbl[tbl$age > 30, c("age", "marital_status")]
 ```
 
-### Filtering
-
-Filter differs from slice because the filter returns all the variables, so it won't be able to cut out some variables.
+## Filtering
 
 ```{r}
 # Filter
@@ -101,12 +104,9 @@ tbl %>%
   subset(age > 30, select = c(age, marital_status))
 ```
 
-### Replace and Fill values
+## Replace and Fill Values
 
-#### Replace
-
-Replace is to exchange a value for another.
-Fill values is when you have a _NA_ value that needs to be filled with an average or another value, like zero.
+### Replace
 
 ```{r}
 # Check for NA values
@@ -122,7 +122,7 @@ tbl[tbl$native_country == "?", "native_country"] <- NA
 tbl$workclass <- gsub(
   pattern     = "\\?",
   replacement = NA, 
-  tbl$workclass
+  x           = tbl$workclass
 )
 
 # Replace "?" with ifelse
@@ -132,16 +132,13 @@ tbl$native_country <- ifelse(tbl$native_country == "?", NA, tbl$native_country)
 sum(is.na(tbl))
 ```
 
-#### Check missing data by column
+### Check Missing Data by Column
 
 ```{r}
 skim(tbl)
 ```
 
-#### Filling
-
-Common fill values are zero, mean, median, most frequent (for categorical).
-There are more complex ways to fill, using machine learning, but that is not in the scope of this book.
+### Filling
 
 ```{r}
 # Fill NAs with most frequent value
@@ -158,131 +155,129 @@ tbl <- na.omit(tbl)
 tbl
 ```
 
-Filling NAs from Numeric columns
+#### Filling NAs from Numeric Columns
+
+##### With 0
 
 ```{r}
-# Data frame
 tbl_num <- tibble(
   A = c(1, 2, 2, 2, 3, NA),
   B = c(3, 4, 5, 3, NA, 0),
   C = c(1, 1, 1, NA, NA, 5)
 )
 
-# Fill NAs with 0
-nafill(tbl_num, type = "const", fill = 0)
+tbl_num[is.na(tbl_num)] <- 0
 
-# Fill NAs with the last valid number
-nafill(tbl_num, type = "locf")
-
-# Fill NAs with the next valid number
-nafill(tbl_num, type = "nocb")
-
-# Fill NAs with mean
-tbl_num$A[is.na(tbl_num$A)] <- mean(tbl_num$A, na.rm = TRUE)
-```
-
-```{r}
 tbl_num
 ```
 
-### Arranging Data
+##### With the Last Valid Number
 
-Arrange data is useful to rank items from top to bottom or vice-versa, creating ordinated datasets.
+```{r}
+tbl_num <- tibble(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+for (i in 1:ncol(tbl_num)) {
+  tbl_num[, i] <- na.locf(tbl_num[, i])
+}
+
+tbl_num
+```
+
+##### With the Next Valid Bumber
+
+```{r}
+df_num <- data.frame(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+for (i in 1:ncol(df_num)) {
+  nas              <- is.na(df_num[, i])
+  non_na_vals      <- na.locf(df_num[, i], fromLast = TRUE)
+  df_num[, i][nas] <- non_na_vals[nas]
+}
+
+df_num
+```
+
+##### With Mean
+
+```{r}
+tbl_num <- tibble(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+tbl_num$A[is.na(tbl_num$A)] <- mean(tbl_num$A, na.rm = TRUE)
+
+tbl_num
+```
+
+## Arranging Data
 
 ```{r}
 # Arrange raw data
 tbl[order(tbl$age, decreasing = TRUE), ]
 
-# Arrange raw data using - instead of "decreasing = TRUE"
+# Arrange raw data using "-" instead of "decreasing = TRUE"
 tbl[order(-tbl$age), ]
 ```
 
-### Creating New Variables
-
-During data wrangling, it is common to create new variables, being that for splitting an information or combining two or more variables to make a new one.
-
-Note: to create new columns in R, you can use _tbl$new_col_name_ or _tbl['new_col_name]_
+## Creating New Variables
 
 ```{r}
 # Binarizing sex using ifelse()
 tbl$sex_binary <- ifelse(tbl$sex == "Female", 1, 0)
-tbl[ , c(10, 16)]
+tbl[ , c("sex", "sex_binary")]
 ```
 
-To Encode a variable, transforming the names in numbers, here is a solution.
-We will:
-
-1. Assign the variable _education_ as a factor
-2. Create order to the levels
-3. Store those orders in another variable
-4. Change the new variable to numbers
+## Encoding a Variable
 
 ```{r}
-## Encoding a variable ##
-
-# Assign education as factor
-tbl$education <- as.factor(tbl$education)
-
-# Order the factors
-tbl$education <- ordered(
-  tbl$education,
-  levels = c(
-    "Preschool",
-    "1st-4th",
-    "5th-6th",
-    "7th-8th",
-    "9th",
-    "10th",
-    "11th",
-    "12th",
-    "HS-grad",
-    "Some-college",
-    "Assoc-acdm",
-    "Assoc-voc",
-    "Bachelors",
-    "Masters",
-    "Doctorate"
+tbl$education_cd <- as.numeric(
+  factor(
+    tbl$education,
+    levels = c(
+      "Preschool",
+      "1st-4th",
+      "5th-6th",
+      "7th-8th",
+      "9th",
+      "10th",
+      "11th",
+      "12th",
+      "HS-grad",
+      "Some-college",
+      "Assoc-acdm",
+      "Assoc-voc",
+      "Bachelors",
+      "Masters" ,
+      "Doctorate"
+    )
   )
 )
 
-# Create new variable
-tbl$education_cd <- tbl$education
-
-# Change levels to numbers
-levels(tbl$education_cd) <- 1:15
 tbl[, c("education", "education_cd")]
 ```
 
-#### Creating a custom calculation
-
-Imagine that there were a rule in place that, for every _capital_gain_ - _capital_loss_ equal or greater than 15,000 there was a 10% tax.
-
-We will first create a _total_ variable to show arithmetic operation and then calculate the 10% tax
+## Creating a Custom Calculation
 
 ```{r}
-# Total gain variable creation
 tbl$total_gain <- tbl$capital_gain - tbl$capital_loss
+tbl$tax        <- ifelse(tbl$total_gain >= 15000, tbl$total_gain * 0.1, 0)
 
-# Tax variable creation
-tbl$tax <- ifelse(tbl$total_gain >= 15000, tbl$total_gain * 0.1, 0)
-
-tbl[ , c(11,12,17,18)][order(-tbl$tax), ]
+tbl[, c("capital_gain", "capital_loss", "education_cd", "total_gain")][order(-tbl$tax),]
 ```
 
-```{r}
-# Shorter code
+## Binding
 
-# Tax variable creation
-tbl$tax2 <- ifelse(tbl$total_gain >= 15000, (tbl$capital_gain - tbl$capital_loss) * 0.1, 0)
-
-tbl
-```
-
-### Binding
-
-Binding data is useful to glue pieces of data together.
-
-_rbind()_ or bind rows glues the data by columns. So if your data has the same variables, you can use this function.
+### Rows
 
 ```{r}
 # Creating datasets A and B
@@ -294,12 +289,12 @@ AB <- rbind(A, B)
 AB
 ```
 
-_cbind()_ is to bind columns, gathering the data by rows. It is more suitable when the rows are for the same observation, but the columns are different and need to be put together.
+### Columns
 
 ```{r}
 # Creating datasets A and B
 A <- tbl[1:10, 1:3]
-B <- tbl[1:10, c(4, 7)]
+B <- tbl[1:10, c("education", "occupation")]
 
 # Bind columns
 AB <- cbind(A, B)
@@ -308,28 +303,17 @@ AB
 
 ## data.table
 
-Review of the library _data.table_
-
-Basic syntax
-
-DT[i, j, by]
-* *i* is for the rows selection or a condition for the rows to be displayed
-* *j* is to select the variables or to calculate a statistic of it
-* *by* is used to group variables
-
-Let's start by recreating the dataset:
-
 ```{r}
 # Load the dataset to RStudio
-tbl <- read.csv(
+dt <- fread(
   "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data",
-  header      = FALSE,
-  strip.white = TRUE
-) %>%
-  as_tibble()
+  header       = FALSE,
+  strip.white  = TRUE,
+  showProgress = FALSE
+)
 
 # Add column names
-colnames(tbl) <- c(
+colnames(dt) <- c(
   "age",
   "workclass",
   "fnlwgt",
@@ -347,29 +331,20 @@ colnames(tbl) <- c(
   "target"
 )
 
-head(tbl)
-```
-
-```{r}
-# Assign variable as data.table object
-dt <- as.data.table(tbl)
-
 dt
 ```
 
 ```{r}
 # Syntax
-dt[dt$age > 50, .(age, occupation)]
+  dt[dt$age > 50, .(age, occupation)]
 ```
+
+### Group By and Summarize
 
 ```{r}
 # Mean age Group By relationship
 dt[, mean(age), by = relationship][order(-V1),]
 ```
-
-### Group by and summarize
-
-Group by will put the data in groups. Summarize will reduce the aggregated data values to one number, like mean, median, count etc.
 
 ```{r}
 # Group By and count number of observations
@@ -386,25 +361,83 @@ dt[, mean(age), by = sex]
 dt[, sum(capital_gain), by = sex]
 ```
 
-### Group and visualize
+### Group and Visualize
 
 ```{r}
 # Mean education years by education level
 educ_yrs <- dt[, mean(education_num), by = education]
 educ_yrs <- educ_yrs[order(V1)]
 
-# barplot
-barplot(
-  educ_yrs$V1,
-  names.arg = educ_yrs$education,
-  col       = "royalblue",
-  main      = "Average years of education by grade level"
+educ_yrs %>%
+  as_tibble() %>%
+  ggplot(aes(fct_reorder(education, V1), V1)) +
+  geom_col(fill = "royalblue", color = "black") +
+  coord_flip() +
+  scale_y_continuous(
+    expand = c(0, 0),
+    breaks = seq(0, 20, by = 2)
+  ) +
+  labs(
+    title = "Average Years of Education by Grade Level",
+    x     = NULL,
+    y     = NULL
+  ) +
+  theme_classic()
+```
+
+### Filling NAs from Numeric columns
+
+#### With 0
+
+```{r}
+dt_num <- data.table(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
 )
+
+nafill(dt_num, type = "const", fill = 0)
+```
+
+#### With the Last Valid Number
+
+```{r}
+dt_num <- data.table(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+nafill(dt_num, type = "locf")
+```
+
+#### With the Next Valid Number
+
+```{r}
+dt_num <- data.table(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+nafill(dt_num, type = "nocb")
+```
+
+#### With Mean
+
+```{r}
+dt_num <- data.table(
+  A = c(1, 2, 2, 2, 3, NA),
+  B = c(3, 4, 5, 3, NA, 0),
+  C = c(1, 1, 1, NA, NA, 5)
+)
+
+dt_num$A[is.na(dt_num$A)] <- mean(dt_num$A, na.rm = TRUE)
+
+dt_num
 ```
 
 ### Arranging data
-
-Using data.table, we can group variables and order them.
 
 ```{r}
 # Group and order education years average by workclass

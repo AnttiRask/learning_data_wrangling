@@ -7,7 +7,7 @@ output: html_document
 
 # Working with Date and Time Objects
 
-## Import libraries and Load Dataset
+## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
 library(conflicted) # An Alternative Conflict Resolution Strategy
@@ -17,59 +17,35 @@ library(hms)        # Pretty Time of Day
 library(tidyverse)  # Easily Install and Load the 'Tidyverse'
 ```
 
-## Introduction
-
-There are three main ways to work with datetime objects in data science.
-1. You create them
-2. You parse them from a string or text
-3. Arithmetic operations
-
----
-
-### 1. Creating a Date or datetime objects
-
-Computers register date and time in their systems. As convention, computers compute any date and time objects using January 1st, 1970 at 00:00:00 UTC.
-
-You can check the current date and time from your system using __{lubridate}__.
+## Creating a Date or DateTime objects
 
 ```{r}
 # Checking today's system date
-"today()"
-today()
+str_c("today(): ", today())
 
 # Checking current system's time
-"now()"
-now()
+str_c("now(): ", now())
 
 # Creating a date object
-"as_date(0)"
-as_date(0)
+str_c("as_date(0): ", as_date(0))
 
-"ymd()"
-ymd(20220714)
+str_c("ymd(): ", ymd(20220714))
 
-"mdy()"
-mdy("Jul142022")
+str_c("mdy(): ", mdy("Jul142022"))
 
-"yq()"
-yq("2010Q4")
+str_c("yq(): ", yq("2010Q4"))
 
 # Creating a time object
-"as_hms()"
-as_hms(43200)
+str_c("as_hms(): ", as_hms(43200))
 
-"ymd_hms()"
-ymd_hms(20220714150000)
+str_c("ymd_hms(): ", ymd_hms(20220714150000))
 
 # Creating a datetime object one year after 1970-01-1
 #(60s*60min*24h*365d = 31,536,000 seconds)
-"as_datetime()"
-as_datetime(31536000)
+str_c("as_datetime(): ", as_datetime(31536000))
 ```
 
-#### Datetime to Date
-
-Dropping time portion of a datetime object.
+### Datetime to Date
 
 ```{r}
 # Datetime object
@@ -79,12 +55,9 @@ dt_tm <- ymd_hm("2022-01-02 03:04")
 as_date(dt_tm)
 ```
 
-### 2. Parsing datetime objects from strings or text
-
-When dealing with datetime objects in a text or data frame and you want to parse or split the dates, use the following commands.
+## Parsing DateTime Objects from Strings or Text
 
 ```{r}
-
 # Creating a variable with 4 dates
 dt <- c(
   "2000-01-01 01:01:01",
@@ -92,11 +65,13 @@ dt <- c(
   "2010-03-03 03:03:03",
   "2020-04-04 04:04:04"
 )
+```
 
+### Split Dates From a Variable
+
+```{r}
 # Assign it as datetime object
 dt <- as_datetime(dt)
-
-### From a variable of dates, split them ###
 
 # years
 year(dt)
@@ -126,10 +101,10 @@ second(dt)
 tz(dt)
 ```
 
-#### Gather date/ time objects
+### Gather DateTime Objects
 
 ```{r}
-# Separate variables
+# separate variables
 y_obj <- "2022"
 m_obj <- "5"
 d_obj <- "10"
@@ -139,24 +114,16 @@ str_c(y_obj, m_obj, d_obj, sep = "-") %>%
   ymd()
 ```
 
-### 3. Arithmetic Operations
+## Arithmetic Operations
 
-Arithmetic operations with datetime are slightly more complex than operations with real numbers. The complexity comes from different units and specific properties, such as time zones.
-
-If we add 20 days to Jan 10, we get to the 30th. But if we add it to Feb, we will land in March, for example.
+### Simple Subtraction
 
 ```{r}
-# Simple subtraction
 dt1 <- as_date("2022-06-01")
 dt2 <- as_date("2022-05-01")
 
 dt1 - dt2
 ```
-
-To comprehend this, we must understand periods, durations and intervals.
-* Period: tracks changes in time, not accounting for any deviations.
-* Duration: tracks passage of time, accounting for deviations like gaps.
-* Interval: a time interval composed by start and end.
 
 ### Period
 
@@ -238,21 +205,23 @@ dt %within% i
 ```{r}
 # System time zone
 Sys.timezone()
+```
 
+```{r}
 # Creating a datetime object in another timezone
 ymd_hms("2022-01-01 00:00:00")
 ymd_hms("2022-01-01 00:00:00", tz = "Europe/Paris")
-
-#--Display datetime in different time zone--
-
-# Date creation
-dt_dubai <- ymd_hms("2022-07-01 10:00:00", tz = "Asia/Dubai")
-with_tz(dt_dubai, tzone="America/New_York")
 ```
 
-## Datetime in text
+### Display DateTime in Different Time Zone
 
-Parsing datetime objects from text.
+```{r}
+# Date creation
+dt_dubai <- ymd_hms("2022-07-01 10:00:00", tz = "Asia/Dubai")
+with_tz(dt_dubai, tzone = "America/New_York")
+```
+
+### Datetime in text
 
 ```{r}
 # Lubridate parsing
@@ -281,34 +250,28 @@ To access the original dataset, got to: https://github.com/fivethirtyeight/data/
 # URL where the data is stored
 url <- "https://raw.githubusercontent.com/fivethirtyeight/data/master/classic-rock/classic-rock-raw-data.csv"
 
-# Load to RStudio
+# Load the dataset
 tbl <- read_csv(url)
 
 # Make a copy of the original data
 tbl_original <- tbl
 
 # View data frame in RStudio viewer
-View(tbl)
+tbl
 ```
 
-Transform column time in datetime.
-
-You may have just seen that the column time brings integer numbers.
-
-To be able to work with these dates, we must, first, transform that variable to a datetime variable.
+## Transform column time in datetime
 
 ```{r}
-# Variable TIME to datetime
 tbl_with_dates <- tbl %>% 
-  mutate(TIME = TIME %>% as_datetime())
+  mutate(TIME = as_datetime(TIME))
 
 tbl_with_dates
 ```
 
-For our purpose, there is no need of all the variables. Let"s select some.
+## Select Variables of Interest
 
 ```{r}
-# Select variables
 tbl_selected <- tbl_with_dates %>% 
   select(
     "Song Clean",
@@ -322,57 +285,42 @@ tbl_selected <- tbl_with_dates %>%
 tbl_selected
 ```
 
-Next, we are creating some extra granularity for time, by adding columns for month, day, week day and hour for further analysis.
-
-Notice that year is always 2014 and month is 06, so no point in keeping them.
+## Add Extra Granularity for Time
 
 ```{r}
 tbl_augmented <- tbl_selected %>%
-  
   mutate(
-    
-    # Add new column year
-    year    = year(TIME),
-    
-    # Add new column month
-    month   = month(TIME),
-    
-    # Add new column day
     day     = day(TIME),
-    
-    # Add new column week day
     weekday = wday(TIME),
-    
-    # Add new column hour
     hour    = hour(TIME)
-  ) %>% 
-  select(-c(year, month))
+  )
 
 tbl_augmented
 ```
 
 ## Visualizations
 
-Since now we have many slices of time, we can create many different views of the musics using that data.
-
-What is the distribution of musics played per day of the week?
+### Distribution of Songs Played Per Day of the Week
 
 ```{r}
-# Filter only unique observations
 tbl_unique <- tbl_augmented %>%
   distinct(
     `Song Clean`,
     .keep_all = TRUE
   )
 
-# Songs by weekday
-song_by_wkd <- tbl_unique %>%
+song_by_weekday <- tbl_unique %>%
   count(weekday)
 
-# Bar plot of Songs by weekday
-song_by_wkd %>%
+weekday <- song_by_weekday %>%
+  pull(weekday)
+
+song_by_weekday %>%
   ggplot(aes(as.factor(weekday), n)) +
   geom_col(fill = "royalblue", color = "black") +
+  scale_x_discrete(
+    labels = weekday %>% wday(label = TRUE)
+  ) +
   scale_y_continuous(
     breaks = seq(0, 600, by = 100),
     expand = c(0, 0),
@@ -380,7 +328,7 @@ song_by_wkd %>%
   ) +
   labs(
     title = "Number of unique songs by day of the week",
-    x     = "Day of the Week [1=Sun, 7=Sat]",
+    x     = NULL,
     y     = "Distinct Songs"
   ) +
   theme_classic() +
@@ -390,16 +338,12 @@ song_by_wkd %>%
   )
 ```
 
-What is the hour when there are more music being played?
-
-In this case, I don't need to filter only distinct song, as I really want to know what is the most busy hour of those days.
+### Hour with the Most Songs Being Played
 
 ```{r}
-# Songs by hour
 song_by_hour <- tbl_augmented %>%
   count(hour)
 
-# Bar plot of Songs by hour
 song_by_hour %>%
   ggplot(aes(as.factor(hour), n)) +
   geom_col(fill = "royalblue", color = "black") +
@@ -420,10 +364,9 @@ song_by_hour %>%
   )
 ```
 
-It looks like there is something weird going on at 11pm, or 23 hours. Let's filter that and have a closer look, just like in a real life project.
+### Filter and Investigate Songs Played at 23:00
 
 ```{r}
-# Filter and arrange only songs played at 23h
 tbl_23 <- tbl_augmented %>% 
   filter(hour == 23) %>% 
   arrange(`Song Clean`, CALLSIGN, TIME)
@@ -431,39 +374,49 @@ tbl_23 <- tbl_augmented %>%
 tbl_23
 ```
 
-A first verification can be searching for duplicate entries.
+### Checking for Duplicates
 
 ```{r}
-# Checking if there are duplicated rows
-tbl_23 %>% 
+tbl_23 %>%
   distinct() %>%
-  nrow() %>%
-  {dim(tbl_23)[1] - .} # Anonymous function to compare the number of rows in the original dataset vs. now
+  count() %>%
+  mutate(difference = nrow(tbl_23) - n) %>%
+  pull(difference)
 ```
 
-Here's what's going on in the second filter in this next code chunk:
+### Filter Only the Duplicated Rows
+
+```{r}
+dups <- tbl_23 %>%
+  filter(duplicated(tbl_23))
+
+dups
+```
+
+### Test for Real Duplicates
 
 * pmap_lgl(): This function applies a function to each row of the dataset and returns a logical vector (a vector of TRUE and FALSE values). The function to be applied is specified using a formula notation with the tilde (~) symbol.
 * all(.x == lag(.x, n = 1)): The all() function checks if all the elements in a logical vector are TRUE. In this case, it checks if all the elements of the current row (.x) are equal to the elements of the previous row (lag(.x, n = 1)). The lag() function shifts the elements of the row by 1 position (specified by n = 1). If all the elements are equal, all() returns TRUE; otherwise, it returns FALSE.
 * filter(): This function is used to subset the dataset based on a condition. In this case, the condition is the logical vector generated by pmap_lgl(). Rows with TRUE values in the logical vector are retained in the dataset.
 
 ```{r}
-# Filter only the duplicated rows
-dups <- tbl_23 %>%
-  filter(duplicated(tbl_23))
-
-# Test for real duplicates
 real_dup <- dups %>%
   mutate(row_number = row_number()) %>%
   filter(pmap_lgl(dups, ~ all(.x == lag(.x, n = 1)))) %>%
   pull(row_number)
 
+real_dup
+```
+
+```{r}
 # Look at duplicates
 dups %>%
   filter(row_number() %in% c(9, 81))
+```
 
+```{r}
 # Checking duplicates
-tbl_original %>% 
+tbl_original %>%
   filter(
     TIME == ymd_hms("2014-06-19 23:54:25") & COMBINED %in% c(
       "Another One Bites the Dust by Queen",
@@ -488,17 +441,15 @@ tbl <- tbl_original %>%
   ) %>%
   mutate(
     time    = as_datetime(time),
-    year    = year(time),
-    month   = month(time),
     day     = day(time),
     weekday = wday(time),
-         hour    = hour(time)
+    hour    = hour(time)
   )
 
 tbl
 ```
 
-Everything looks fine. What happened is that we summed all the songs played by hour for all the days in that week. A better approach should be grouping the dataset by day and take an average of songs played by hour.
+### Average Number of Songs Played by Hour
 
 ```{r}
 # Group data by weekday
@@ -529,9 +480,7 @@ tbl_by_day %>%
   theme_classic()
 ```
 
-Even then, the number of songs played at 11pm is really high.
-
-Now, let's see what hour has most songs being played for the first time.
+### First Time Played by Hour
 
 ```{r}
 # Filter only first time = 1
@@ -561,10 +510,10 @@ first_time %>%
   theme_classic()
 ```
 
-Average Number of songs played by radio by day
+### Average Number of Songs Played by Radio by Day
 
 ```{r}
-# Average by radio by day
+# Average by Radio by Day
 by_radio <- tbl %>% 
   summarise(
     song_count = n(),
@@ -589,9 +538,9 @@ by_radio %>%
     limits = c(0, 320)
   ) +
   labs(
-    title = "Average Number of Songs by Radio Station in a Day",
-    x     = "Radio Station",
-    y     = "Avg Number of Songs Played"
+    title = "Average Number of Songs Played by Radio Station in a Day",
+    x     = NULL,
+    y     = NULL
   ) +
   theme_classic()
 ```

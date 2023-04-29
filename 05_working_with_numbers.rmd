@@ -5,7 +5,7 @@ date: "2022-07-11"
 output: html_document
 ---
 
-# Creating Numeric variables
+# Creating Numeric Variables
 
 ## Load Libraries
 
@@ -17,20 +17,22 @@ library(skimr)      # Compact and Flexible Summaries of Data
 library(tidyverse)  # Easily Install and Load the 'Tidyverse'
 ```
 
+## Primer
+
 ```{r}
 # Creating a scalar
 scalar <- 42
 scalar
 
 # Creating a vector
-vec <- c(1, 2, 3, 4, 5, 6, 7, 8, 9)
-vec
+vector <- c(1, 2, 3, 4, 5, 6, 7, 8, 9)
+vector
 
 # Creating a Matrix
-mtrx <- vec %>%
+matrix <- vector %>%
   matrix(nrow = 3, ncol = 3)
 
-mtrx
+matrix
 ```
 
 ```{r}
@@ -73,26 +75,24 @@ c(1, 2) + c(1, 2, 3, 4)
 
 ## Matrix
 
-Two dimensional elements that require a different slicing notation
-
 ```{r}
 # Create a Matrix
-mtrx <- matrix(
+matrix <- matrix(
   1:12,
   nrow  = 4,
   ncol  = 3,
   byrow = TRUE
 )
 
-mtrx
+matrix
+```
 
+```{r}
 # Slicing [row,col]
-mtrx[2,3]
+matrix[2, 3]
 ```
 
 ## Tibbles
-
-They are heterogeneous. They accept variables with different data types.
 
 ```{r}
 # Tibble
@@ -107,47 +107,40 @@ tbl
 
 ```{r}
 # Slicing Carl's grade (col 1 and col 3)
-tbl[1,3]
+tbl %>%
+  slice(1) %>%
+  pull(grade)
 
-# alternatively
+# Alternatively
 tbl %>%
   filter(name == "Carl") %>% 
-  select(grade)
+  pull(grade)
 ```
 
 ```{r}
 # Slicing by variable
-tbl[, "grade"]
-
-# Alternatively
 tbl %>% 
-  select(grade)
+  pull(grade)
 ```
 
 ```{r}
 # Slicing by condition
-tbl[ tbl$grade > 8,]
-
-# alternatively
 tbl %>% 
   filter(grade > 8)
 ```
 
-Example: Extra point from the "professor"
+### Example: Extra Point from the Professor
 
 ```{r}
-# Extra point
-# Scenario: everyone delivered
 tbl_with_new_grade <- tbl %>% 
   mutate(new_grade = grade + 1)
 
 tbl_with_new_grade
 ```
 
-Normalization example
+### Example: Normalization
 
 ```{r}
-# Normalization
 max_grade <- tbl_with_new_grade %>% 
   pull(grade) %>% 
   max()
@@ -158,69 +151,63 @@ tbl_normalized <- tbl_with_new_grade %>%
 tbl_normalized
 ```
 
-## Map Functions from {purrr}
+## Map Functions from {purrr} and _Summarize()_ to Replace the _apply()_ Family of Functions
 
-Let’s you apply a function to a row or a column of a tibble.
-
-Also other ways to replace _apply()_ from base R like _summarise()_ + _across()_ + _everything()_
-
-### _pmap_dbl()_ for mapping over multiple input simultaneously (in "parallel")
+### pmap_dbl()
 
 ```{r}
 # apply function mean to rows: sum 'grade' + 'new_grade'
 tbl_normalized %>% 
   select(grade, new_grade) %>% 
   pmap_dbl(~ mean(c(...)))
+```
 
+```{r}
 # apply function mean to columns the column 3 and 4
 tbl_normalized %>% 
   select(grade, new_grade) %>% 
   summarise(across(everything(), mean))
+```
 
+```{r}
 # apply custom function
-my_func <- function(grade, new_grade) {
+calculate_grade_new_grade_avg <- function(grade, new_grade) {
   sum(grade, new_grade) / 2
 }
 
 tbl_normalized %>% 
   select(grade, new_grade) %>% 
-  pmap_dbl(my_func)
+  pmap_dbl(calculate_grade_new_grade_avg)
 ```
  
-### _map()_ 
+### map()
 
-Used to apply a function to lists of objects, returning a list object of the same length.
+#### Remove the Extra Point from new_grade
 
 ```{r}
-# lapply of a custom function to remove the extra point from new_grade
-my_func <- function (x){x-1}
-map_obj <- map(tbl_normalized$new_grade, my_func)
+remove_a_point <- function (x){x - 1}
+map_obj <- map(tbl_normalized %>% pull(new_grade), remove_a_point)
 map_obj
 ```
 
-## _map_dbl()_
-
-To replace _sapply()_ from base R, you can use either _map_dbl()_ or just _map()_, depending on the context
+### map_dbl()
 
 ```{r}
 # map_dbl a custom function to a single column
-my_func <- function(x) {
-  x - 1
-}
-
+# my_func <- function(x) {x - 1}
 tbl_normalized %>%
   pull(new_grade) %>% 
-  map_dbl(my_func)
+  map_dbl(remove_a_point)
 
 # mapping of a custom function to two columns
 tbl_normalized %>%
   select(grade, new_grade) %>% 
-  map(my_func) %>%
+  map(remove_a_point) %>%
   as_tibble() %>% 
   as.matrix()
 ```
 
-No need to use _tapply()_ from base R either. Summarise does the same job here.
+### Summarize
 
 ```{r}
 # Create new tibble
@@ -239,9 +226,7 @@ tbl %>%
 ```
  
 ## Descriptive Statistics
- 
-Descriptive statistics are measurements or summarizations of a sample used to describe a variable
- 
+
 ```{r}
 # Set a seed to reproduce the same results
 set.seed(12)
@@ -255,20 +240,27 @@ var2 <- rnorm(50, mean = 0, sd = 5)
 # Mean
 mean(var1)
 mean(var2)
+```
 
+```{r}
 # Standard Deviation
 sd(var1)
 sd(var2)
+```
 
+```{r}
 # Median
 median(var1)
 median(var2)
+```
 
+```{r}
 # percentiles or quantiles
 quantile(var1, c(0.25, 0.5, 0.75))
+quantile(var2, c(0.25, 0.5, 0.75))
 ```
  
-# Histograms
+### Histograms
 
 ```{r}
 # Histogram var1
@@ -310,7 +302,7 @@ p2 <- var2 %>%
 (p1 + p2) * theme_classic()
 ```
  
-Descriptive statistics in numbers
+### Descriptive Statistics in Numbers
 
 ```{r}
 # Create a tibble with both variables for comparison
@@ -352,7 +344,7 @@ tbl %>%
 	)
 ```
 
-Calculate statistics using the function _summary()_.
+### Calculate Statistics Using _summary()_ and/or _skim()_
 
 ```{r}
 # Descriptive stats with summary function
@@ -363,21 +355,18 @@ summary(tbl)
 skim(tbl)
 ```
 
-## Correlation
-
-Correlation is the measurement of the strength of a linear relationship between two variables.
+### Correlation
 
 ```{r}
-# Correlation
-cor(var1, var2, method="pearson")
+cor(var1, var2, method = "pearson")
 ```
 
+#### Scatterplot
+
 ```{r}
-# Scatterplot
 tbl %>% 
   ggplot(aes(var1, var2)) +
   geom_point(color = "royalblue", size = 2) +
   labs(title = "Scatterplot var1 x var2") +
   theme_classic()
 ```
-

@@ -11,7 +11,6 @@ output: html_document
 
 ```{r, message=FALSE, warning=FALSE}
 library(conflicted) # An Alternative Conflict Resolution Strategy 
-library(datasets)   # The R Datasets Package
 library(ggformula)  # Formula Interface to the Grammar of Graphics
 library(patchwork)  # The Composer of Plots
 library(tidyverse)  # Easily Install and Load the 'Tidyverse'
@@ -24,13 +23,13 @@ library(tidyverse)  # Easily Install and Load the 'Tidyverse'
 data("mtcars")
 ```
 
-## 1. Univariate Visuals
+## Univariate Visuals
 
 ### Histograms
 
 ```{r}
 # Histogram of miles per gallon
-mtcars %>% 
+mtcars %>%
   ggplot(aes(mpg)) +
   geom_histogram(
     breaks = seq(10, 35, by = 5),
@@ -91,22 +90,17 @@ mtcars %>%
   )
 ```
 
-Do cars with automatic transmission consume make less miles per galon than the manual vehicles?
+Do cars with automatic transmission consume make less miles per gallon than the manual vehicles?
 
 ```{r}
-# boxplot AM vs MPG
+# Boxplot AM vs MPG
 mtcars %>% 
-  ggplot(aes(as.factor(am), mpg, fill = as.factor(am))) +
-  geom_boxplot() +
+  ggplot(aes(as.factor(am), mpg)) +
+  geom_boxplot(fill = "royalblue") +
   labs(
-    fill  = "Transmission",
-    title = "Boxplot of Miles per Gallon (MPG)",
+    title = "Types of Transmission and the Fuel Efficiency",
     x     = NULL,
     y     = "Miles per Gallon"
-  ) +
-  scale_fill_manual(
-    values = c("0" = "coral", "1" = "royalblue"),
-    labels = c("0" = "Automatic", "1" = "Manual")
   ) +
   scale_x_discrete(
     labels = c("0" = "Automatic", "1" = "Manual")
@@ -119,7 +113,7 @@ mtcars %>%
   )
 ```
 
-Boxplot using formula notation
+#### Boxplot using formula notation
 
 ```{r}
 # Boxplot with formula notation
@@ -127,19 +121,18 @@ mtcars %>%
   gf_boxplot(
     mpg ~ as.factor(cyl),
     group = ~cyl,
-    fill  = c("gold", "coral", "blue"),
+    fill  = "royalblue",
   ) +
   labs(
     title = "Miles per Gallon by Number of Cylinders",
-    x     = "Cylinders",
+    x     = NULL,
     y     = "Miles per Gallon"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(axis.ticks.x = element_blank())
 ```
 
 ### Density Plot
-
-The density plots need to be calculated as a separate variable and then plotted using `plot()`. The `polygon()` function fills the curve.
 
 ```{r}
 # Density Plot
@@ -159,8 +152,6 @@ mtcars %>%
 
 #### Compare two density plots
 
-This is a good way to compare distributions.
-
 ```{r}
 mtcars %>% 
   ggplot(aes(mpg, group = am, fill = as.factor(am))) +
@@ -170,9 +161,7 @@ mtcars %>%
     labels = c("0" = "Automatic", "1" = "Manual")
   ) +
   scale_x_continuous(limits = c(0, 50)) +
-  scale_y_continuous(
-    breaks = seq(0, 0.10, by = 0.02)
-  ) +
+  scale_y_continuous(breaks = seq(0, 0.10, by = 0.02)) +
   labs(
     fill  = NULL,
     title = "Density Plot of MPG",
@@ -187,11 +176,9 @@ mtcars %>%
   )
 ```
 
-## 2. Two Variable Plots
+## Two Variable Plots
 
 ### Scatterplots
-
-One of the best visuals to visualize relationships between numerical variables is the scatterplot.
 
 ```{r}
 # Basic scatterplot
@@ -199,7 +186,7 @@ mtcars %>%
   ggplot(aes(hp, mpg)) +
   geom_point(color = "royalblue", size = 2) +
   labs(
-    title = "Effect of Horsepower on Milesper Gallon (MPG)",
+    title = "Effect of Horsepower on Miles per Gallon (MPG)",
     x     = "Horsepower",
     y     = "MPG"
   ) +
@@ -212,8 +199,8 @@ mtcars %>%
   ggplot(aes(wt, mpg)) +
   geom_point(color = "royalblue", size = 5) +
   labs(
-    title = "Scatterplot of Weight vs. MPG",
-    x     = "HP",
+    title = "Weight vs. MPG",
+    x     = "Weight",
     y     = "MPG"
   ) +
   theme_classic()
@@ -221,10 +208,7 @@ mtcars %>%
 
 ### Column Plot
 
-Bar plot and Column Plot can be used interchangeably, although there is a difference about the layout of the graphic, being columns when the categories are on the X axis and bar if the categories lie on the Y axis.
-
 ```{r}
-# Column Plot: How many cars by cylinder
 mtcars %>% 
   ggplot(aes(as.factor(cyl))) +
   geom_bar(fill = "royalblue") +
@@ -270,8 +254,6 @@ mtcars %>%
 ```
 
 ### Line Plot
-
-Line plots are a perfect fit to represent evolution of one or more variables over time.
 
 ```{r}
 # Load dataset
@@ -338,7 +320,11 @@ y3 <- rnorm(12) + 4
 
 # Line Plot
 tibble(x, y, y2, y3) %>%
-  pivot_longer(cols = c(y, y2, y3), names_to = "line", values_to = "value") %>%
+  pivot_longer(
+    cols      = c(y, y2, y3),
+    names_to  = "line",
+    values_to = "value"
+  ) %>%
   ggplot(aes(x, value, color = line, linetype = line)) +
   geom_line(linewidth = 1) +
   scale_color_manual(values = c("royalblue", "coral", "darkgreen")) +
@@ -359,9 +345,7 @@ tibble(x, y, y2, y3) %>%
   )
 ```
 
-## 3. Plotting Multiple Variables
-
-We can use more than two variables to plot graphics when we use size or color based on a third variable to differentiate data points.
+## Plotting multiple variables
 
 ```{r, warning=FALSE}
 # Scatterplot with 3 variables
@@ -384,9 +368,7 @@ mtcars %>%
   )
 ```
 
-### Bar Plot with three variables
-
-Too much information.
+### Bar Plot with three variables (avoid!)
 
 ```{r}
 # Stacked Bar Plot with Colors and Legend
@@ -394,7 +376,7 @@ Too much information.
 # Prepare the data
 mtcars_counts <- mtcars %>%
   count(cyl, vs, am) %>%
-  mutate(across(where(~is_double(.x)), as.factor))
+  mutate(across(where(~is_double(.)), as.factor))
 
 # Create the stacked bar plot
 p <- mtcars_counts %>%
@@ -436,19 +418,17 @@ p + geom_line(
     axis.line.x       = element_blank(),
     legend.background = element_rect(color = "black"),
     legend.box        = "horizontal",
-    legend.position   = c(0.5, 0.80),
+    legend.position   = c(0.5, 0.8),
     legend.title      = element_blank()
   )
 ```
 
-### Plot two graphics side by side
-
-You can plot two - or more - graphics side by side. To make that happen, use the function _par()_ and pass a vector with the number of rows and columns you want.
+## Plot two graphics side by side
 
 ```{r, include=FALSE}
 # Plot Graphics
 
-# Create the scatter plot (1,1)
+# Create the scatter plot
 p1 <- mtcars %>% 
   ggplot(aes(disp, hp)) +
   geom_point(color = "royalblue") +
@@ -459,7 +439,7 @@ p1 <- mtcars %>%
     y     = "HP"
     )
 
-# Create the histogram (1,2)
+# Create the histogram
 p2 <- ggplot(mtcars, aes(x = disp)) +
   geom_histogram(
     breaks = seq(50, 500, by = 50),
@@ -473,7 +453,8 @@ p2 <- ggplot(mtcars, aes(x = disp)) +
     )
 
 # Combine the plots using patchwork
-combined_plot <- p1 + p2 & theme_classic()
+combined_plot <- p1 + p2 & 
+  theme_classic()
 ```
 
 ```{r}

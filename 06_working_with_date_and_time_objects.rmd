@@ -404,7 +404,8 @@ real_dup <- dups %>%
   mutate(
     row_number = row_number(),
     equal_cols = map2_dbl(
-      row_number, lead(row_number, default = 0),
+      row_number,
+      lead(row_number, default = 0),
       ~if (.y != 0) {sum(dups[.x, ] == dups[.y, ])} 
       else NA
     )

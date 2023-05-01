@@ -7,11 +7,10 @@ output: html_document
 
 # Enhanced Visualization with {ggplot2}
 
-## Import Libraries
+## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
-library(conflicted)  # An Alternative Conflict Resolution Strategy 
-library(datasets)    # The R Datasets Package
+library(conflicted)  # An Alternative Conflict Resolution Strategy
 library(gghighlight) # Highlight Lines and Points in 'ggplot2'
 library(ggrepel)     # Automatically Position Non-Overlapping Text Labels with 'ggplot2'     
 library(patchwork)   # The Composer of Plots
@@ -21,30 +20,28 @@ library(tidyverse)   # Easily Install and Load the 'Tidyverse'
 
 ## Dataset
 
-In this chapter, we will use the dataset "diamonds", from the package datasets  to illustrate the plots.
-
-To make the code more generically applicable to any dataset, I will call it "tbl".
-
 ```{r}
 # Loading the dataset
 data("diamonds")
 
 tbl <- diamonds
 
-remove(diamonds)
-
 tbl
 ```
 
-A regular scatterplot of the prices by carat will look busy. Observe.
-
 ```{r}
-# Scatterplot of price by carat.
+# Scatterplot of price by carat
 tbl %>%
   ggplot(aes(carat, price, color = cut)) + 
   geom_point(alpha = 0.5) +
   theme_classic()
 ```
+
+## Enhancements
+
+### Faceting
+
+#### Facet Grid
 
 ```{r}
 # Facet grid by cut of scatterplot price by carat
@@ -64,7 +61,7 @@ tbl %>%
   theme_bw()
 ```
 
-__Facet wrap__
+#### Facet wrap
 
 It forces the grid into a rectangular form.
 
@@ -91,8 +88,6 @@ tbl %>%
 
 ### Map plots
 
-Maps are good to plot information based on locations.
-
 Let's load a file with location information about the USA states and their GDP in 2021.
 
 https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_GDP
@@ -104,7 +99,7 @@ states <- read_csv("data/USA_states.csv")
 states
 ```
 
-Now, to create a map, we use the _geom_map()_ function.
+#### Plot the Map of USA
 
 ```{r}
 # Loading the map of the USA states from ggplot2
@@ -122,7 +117,7 @@ us %>%
   theme_void()
 ```
 
-Now let's plot the USA Map with the capital cities marked.
+#### Map the Location of the State Capitals
 
 ```{r}
 # Names of the states to lower case
@@ -159,10 +154,9 @@ us_map +
   )
 ```
 
-We can also add the state names to the plot.
+#### Map the Location of the State Capitals
 
 ```{r}
-
 # Mapping the location of the state capitals
 states_lower %>% 
   ggplot() + 
@@ -189,14 +183,9 @@ states_lower %>%
 
 ### Time Series Plots
 
-Time Series is a dataset where the sequence of points is ordered in time. So the data will present a measurement of any given variable through time periods, such as days, hours, months or any other time period.
-
-Let's see how to visualize time series.
-
 ```{r}
 set.seed(10)
 
-# Creating a Dataset
 ts <- tibble(
   date    = seq(ymd("2022-01-01"), ymd("2022-06-30"), by = "days"),
   measure = as.integer(runif(181, min = 600, max = 1000) + sort(rexp(181, 0.001)))
@@ -205,17 +194,14 @@ ts <- tibble(
 ts
 ```
 
-Let's start with the most basic plot
+#### Basic plot
 
 ```{r}
-# Basic plot
 ts %>%
   ggplot(aes(date, measure)) +
   geom_line(linewidth = 0.7) +
   theme_classic()
 ```
-
-If we call the basic plot _basic_plot_, then all we have to do is to add more layers as we want.
 
 ```{r}
 # Basic plot
@@ -235,7 +221,7 @@ basic_plot +
   scale_x_date(date_labels = "%b %y")
 ```
 
-We can also control the breaks between the labels. For example, we can see the breaks by month or bi-weekly instead of the three month period above.
+#### Date Breaks
 
 ```{r}
 # Breaks by one month
@@ -250,7 +236,7 @@ basic_plot +
   scale_x_date(date_breaks = "2 weeks", date_labels = "%m %d")
 ```
 
-We can also select some specific time dates from our time series.
+#### Date Limits
 
 ```{r}
 # Closeup on date after 06/01
@@ -264,10 +250,7 @@ basic_plot +
 
 ### 3D Plots
 
-We can used 3D graphics to represent surfaces. To plot 3D, use the library __{plotly}__.
-
 ```{r}
-# Set seet for reproduceability
 set.seed(42)
 
 # Creating a random surface
@@ -287,10 +270,6 @@ surface <- matrix(
 plot_ly(z = ~surface) %>%
   add_surface()
 ```
-
-Another good use of 3D graphics is to see the dimension where the separation of the points occur. Imagine you have tow variables points really close to each other and the separation happens on a third dimension.
-
-That can be seen on a 3D plot.
 
 ```{r}
 set.seed(42)
@@ -314,7 +293,6 @@ my_data %>%
   theme_classic()
 ```
 
-The 3D plot
 ```{r}
 # Plot 3D
 my_data %>%
@@ -350,15 +328,9 @@ my_data %>%
   add_markers()
 ```
 
-### Adding interactivity to the graphics
-
-Add interactivity is helpful because a graphic becomes  ready for a more in-depth analysis, being able to zoom in and out, for example.
-
-To create an interactive plot out of ggplot2 graphic, just combine it with plotly function _ggplotly()_.
+### Interactive Plots
 
 ```{r}
-# Interactive scatter plot
-
 # Scatterplot of price by carat.
 p <- tbl %>%
   ggplot(aes(carat, price, color = cut)) + 

@@ -7,7 +7,7 @@ output: html_document
 
 # Other Data Visualization Options
  
-## Import Libraries
+## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
 library(conflicted) # An Alternative Conflict Resolution Strategy
@@ -17,9 +17,7 @@ library(tidyverse)  # Easily Install and Load the 'Tidyverse'
 library(wordcloud2) # Create Word Cloud by 'htmlwidget' 
 ```
 
-## Plotting graphic in Microsoft Power BI
-
-Let's create a sample data frame
+## Plotting Graphic in Microsoft Power BI
 
 ```{r}
 # Data frame created
@@ -32,9 +30,8 @@ dataset <- tibble(
 write_csv(data, "data/example_data.csv")
 ```
 
-To plot this graphic in Power BI, copy and paste this code in the tool.
-
 ```{r}
+# To plot this graphic in Power BI, copy and paste this code in the tool
 ggplot(dataset) %>%
   geom_histogram(
     aes(dist1),
@@ -51,19 +48,16 @@ dataset <- tibble(dist1 = data %>% pull(dist1))
 head(dataset)
 ```
 
-JATKA TÄSTÄ, KUN TIEDOSTO ON SAATAVILLA!
+Antti: At the time of writing, the word document (of Chapter 10 of the book) is missing from the original repo. I will include the original code as a placeholder, but will update it as soon as the word document is available.
 
-### Word cloud
-
-As the text input for this exercise, I will use the chapter 10 of this book.
-We will initially read the word document, then extract only the textual information and get rid of NAs and blank cells.
+## Word cloud
 
 ```{r}
 # Read word document
 chapter10 <- read_docx("data/Data_Wrangling_With_R_Chapter10.docx")
 content   <- docx_summary(chapter10)
 
-# Extract only textual information and drop Blank cells and NAs.
+# Extract only textual information and drop Blank cells and NAs
 text <- content %>% 
   select(text) %>% 
   na_if("") %>% 
@@ -71,16 +65,7 @@ text <- content %>%
 
 # Transform to tibble object
 text <- tibble(text)
-
-# Clean environment
-remove(chapter10, content)
 ```
-
-Next, we will tokenize _text_, what means that we will break the text down to the minimal unit with meaning, which is a word. So each word is one token.
-
-Observe that the function _unnest_tokens()_ does other important transformations that are very common in 
-text mining, such as converting the tokens to lower case, removing text punctuation and if there was the 
-line numbers where the word came from, that would also be removed.
 
 ```{r}
 # Tokenize - one word is one token
@@ -88,19 +73,12 @@ text_tokens <- text %>%
   unnest_tokens(output = word, input = text)
 ```
 
-Remove numbers and punctuation. We only want text in the word cloud
-
 ```{r}
-# Remove numbers
+# Remove numbers and punctuation
 clean_tokens <- text_tokens %>%
- filter(str_detect(word, "\\D"))
-
-# Remove punctuation
-clean_tokens <- clean_tokens %>%
+ filter(str_detect(word, "\\D")) %>%
  filter(!str_detect(word, "[:punct:]"))
 ```
-
-Then remove stopwords.
 
 ```{r}
 # load stopwords
@@ -111,25 +89,13 @@ clean_tokens <- clean_tokens %>%
   anti_join(stop_words)
 ```
 
-Finally, count the appearance of each word in the text.
-
 ```{r}
 # Count word frequency.
 word_freq <- clean_tokens %>%
   count(word, sort = TRUE)
 ```
 
-Plot word cloud.
-
-When we look at a word cloud, we should get a feel of what is the content of the text.
-
 ```{r}
 # Generating WordCloud
 wordcloud2(data = word_freq, color = "random-dark", size = 1)
 ```
-
-Just refreshing our minds, chapter 10 is about an introduction to the ggplot2 library. It brings the concepts of the grammar of graphics and introduces the syntax for many kinds of graphics, using the mentioned library. 
-
-Now, looking at the word cloud displayed, it summarizes very well the content of the chapter. Observe that the largest words are those we talk a lot about: plot, figure, colors, aesthetics, ggplot2. We also can notice graphical elements, like bar, line, histogram, fill, aes, and axes. 
-
-Furthermore, since we used the mtcars dataset for many examples, the words like mpg, gallon, and miles also pop-up.

@@ -7,25 +7,15 @@ output: html_document
 
 # Intro to {ggplot2}
 
-## Import Libraries
+## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
 library(conflicted) # An Alternative Conflict Resolution Strategy
-library(datasets)   # The R Datasets Package
 library(patchwork)  # The Composer of Plots
 library(tidyverse)  # Easily Install and Load the 'Tidyverse'
 ```
 
-__{ggplot2}__ follows the grammar of graphics theory, enabling the developer to create graphics by layers.
-We must follow these questions to create a basic plot.
-
-## Questions Template
-
-To build a basic plot with ggplot2, follow these questions template:
-*	What is the dataset to be used?
-*	What kind of graphic will be plotted?
-*	What goes on the X axis and Y axis?
-*	What is the graphic title?
+## My First {ggplot2} Graphic
 
 ```{r}
 # Set a seed for reproduce the same results
@@ -37,110 +27,70 @@ tbl <- tibble(
   var2 = rnorm(20)
 )
 
-# What is the dataset to be used?
 tbl %>%
-  # What goes on X and Y?
   ggplot(aes(var1, var2)) +
-  # What kind of graphic?
   geom_point() +
-  # What is the graphic title?
   labs(title = "My first ggplot2 graphic") +
   theme_classic()
 ```
 
 ## Dataset
 
-In this chapter, we will use the dataset "mtcars", from the package datasets  to illustrate the plots.
-To make the code more generically applicable to any dataset, I will call it "tbl".
-
 ```{r}
-# Loading the dataset
 data("mtcars")
 
-tbl <- mtcars %>% 
+cars_tbl <- mtcars %>% 
   as_tibble(rownames = "names")
 
-remove(mtcars)
-
-tbl
+cars_tbl
 ```
+
+## Plot Types
 
 ### Histogram
 
-Histograms are created using the function _geom_histogram()_ in ggplot2.
-
-This is a great graphic to look at the variable distribution.
-
 ```{r}
-# What is the dataset to be used and what goes on x?
-tbl %>% 
+cars_tbl %>% 
   ggplot(aes(mpg)) +
-  # What kind of graphic?
   geom_histogram( 
-    # What is the color, fill color and number of bins?
     bins  = 20,
     color = "lightgray",
     fill  = "royalblue"
   ) +
-  # Where does the scale start from?
   scale_y_continuous(expand = c(0, 0)) +
-  # What is the graphic title?
   labs(title = "Histogram of Miles per Gallon") +
-  # What is the theme?
   theme_classic()
 ```
 
 ### Boxplot
 
-The boxplot can be created with the geometry function geom_point(), since it is also known as _points graphic_. This is a good plot to find outliers.
-
 ```{r}
 # Boxplot of MPG
-
-# Dataset
-tbl %>%
-  # Y
+cars_tbl %>%
   ggplot(aes(y = mpg)) + 
-  # Geometry and filling color
   geom_boxplot(fill = "royalblue") + 
-  # title
-  labs(title = "Boxplot of Miles per Gallon") +
-  # theme
+  labs(title = "Miles per Gallon (MPG)") +
   theme_classic()
 ```
-
-Boxplots are also a good choice if you are interested in comparing groups averages.
 
 ```{r}
 # Boxplot of MPG by engine type
-
-# Dataset
-tbl %>% 
-  # X, Y
+cars_tbl %>% 
   ggplot(aes(factor(vs), mpg)) + 
-  # Geometry and filling color
   geom_boxplot(fill = "royalblue") +
-  # Renaming the text for x axis
   scale_x_discrete(labels = c("1" = "V-shaped", "0" = "Line-shaped")) +
-  # overwrite the label for x axis
   labs(
     x     = "Engine shape",
-    # title
     title = "A comparison between V-shaped vs. Line-shaped engines and the effect on MPG"
   ) +
-  # theme
   theme_classic()
 ```
 
-### Scatterplot or Points plot
-
-The scatterplot is also known as points plot. Ergo, that was the name of the geometry chosen by the library’s creators. Use _geom_point()_ to create a scatterplot.
-
-This graphic type is very useful for understanding relationships between variables and correlations.
+### Scatterplot or Points Plot
 
 ```{r}
 # Scatterplot weight versus mpg
-tbl %>% 
+cars_tbl %>% 
   ggplot(aes(wt, mpg)) +
   geom_point(
     color = "royalblue",
@@ -157,13 +107,12 @@ tbl %>%
   theme_classic()
 ```
 
-### Bar plot
+### Bar Plot
 
-For categorical plot, the bar or column plots are essential, showing counts or values for each category represented. To create such graphic, use the geometry function _geom_bar()_ or _geom_col()_.
+#### Single Variable
 
 ```{r}
-# Bar plot
-tbl %>%
+cars_tbl %>%
   ggplot(aes(factor(am))) + 
   geom_bar(fill = "royalblue") +
   scale_x_discrete(labels = c("1" = "Manual", "0" = "Automatic")) +
@@ -177,14 +126,18 @@ tbl %>%
     y     = NULL,
     title = "Count of observations by transmission type"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    axis.line.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 ```
 
-To create a geom_bar() graphic with two variables, you must pass a statistic.
+#### Multiple Variables
 
 ```{r}
 # Bar plot with two variables
-tbl %>% 
+cars_tbl %>% 
   ggplot(aes(factor(am), mpg)) + 
   # statistic calculation - mean value
   geom_bar(
@@ -202,12 +155,18 @@ tbl %>%
     y     = NULL,
     title = "Average MPG by transmission type"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    axis.line.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 ```
+
+#### With stat_summary()
 
 ```{r}
 # Another syntax
-tbl %>% 
+cars_tbl %>% 
   ggplot(aes(factor(am), mpg)) + 
   # statistic calculation - mean value
   stat_summary(
@@ -225,14 +184,18 @@ tbl %>%
     y     = NULL,
     title = "Averate MPG by transmission type"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    axis.line.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 ```
 
-__Column plot__
+### Column plot
 
 ```{r}
 # Column plot for MPG by transmission type
-tbl %>% 
+cars_tbl %>% 
   ggplot(aes(factor(am), mpg)) +
   geom_col(fill = "royalblue") +
   scale_x_discrete(labels = c("1" = "Manual", "0" = "Automatic")) +
@@ -246,18 +209,18 @@ tbl %>%
     y     = NULL,
     title = "MPG by transmission type"
   ) +
-  theme_classic()
+  theme_classic() +
+  theme(
+    axis.line.x  = element_blank(),
+    axis.ticks.x = element_blank()
+  )
 ```
 
-__Stacked or Side-by-side__
-
-The position argument can be changed to setup the graphic as desired.
-
-Let's see how to plot a stacked bar plot
+#### Stacked or Side-by-Side
 
 ```{r}
 # Base plot
-p <- tbl %>% 
+p <- cars_tbl %>% 
   ggplot(aes(factor(cyl), fill = factor(vs))) +
   scale_fill_discrete(labels = c("0" = "Line-shaped", "1" = "V-shaped")) +
   scale_y_continuous(expand = c(0, 0)) +
@@ -292,7 +255,7 @@ g3 <- p +
 
 ### Line plot
 
-The line plots are very indicated to show progression over time. Let’s say that there is a dataset with car sales throughout the months and we want to visualize that information, the line plot would be one of the best indications.
+#### Single Line
 
 ```{r}
 # Seed for reproduction
@@ -308,8 +271,6 @@ sales <- tibble(
 sales
 ```
 
-Now the line plot.
-
 ```{r}
 # Simple Line plot
 sales %>%
@@ -319,7 +280,7 @@ sales %>%
   theme_classic()
 ```
 
-We can plot a line plot with multiple lines.
+#### Multiple Lines
 
 ```{r}
 # Line plot with two variables
@@ -333,6 +294,7 @@ sales %>%
     legend.title = element_blank()
   )
 ```
+#### Multiple Lines with pivot_longer()
 
 ```{r}
 # Alternatively using pivot_longer first
@@ -347,30 +309,28 @@ sales %>%
   theme_classic()
 ```
 
-### Smooth geometry
-
-The geom_smooth() function, as per the documentation, calculates a smoothed line that helps us to see trends in the points, using methods like linear regression, general linear model, polynomial regression and others, to create the trend line that helps in the graphic interpretation.
+#### Smooth Geometry
 
 ```{r}
 # Smooth line
-tbl %>%
+cars_tbl %>%
   ggplot(aes(hp, mpg)) +
   geom_point(aes(color= factor(vs))) +
   geom_smooth(method = "loess") +
   scale_color_discrete(labels = c("0" = "Line-shaped", "1" = "V-shaped")) +
-  labs(color = "Engine Shape") +
+  labs(
+    color = "Engine Shape",
+    x     = "HP",
+    y     = "MPG"
+    ) +
   theme_classic()
 ```
 
-### Themes
-
-Another grammatical element to support graphic creation in ggplot2 is the theme. Themes are preset visual configurations that one can add to the code as a layer and create a plot that makes more sense with the style of the project.
-
-Use _theme_xxx()_ to add one yo the plot.
+## Themes
 
 ```{r}
 # Base Plot
-p <- tbl %>% 
+p <- cars_tbl %>% 
   ggplot(aes(factor(am))) +
   geom_bar(fill= "royalblue") +
   labs(x = "am")

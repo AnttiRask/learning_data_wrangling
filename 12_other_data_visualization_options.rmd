@@ -21,7 +21,7 @@ library(wordcloud2) # Create Word Cloud by 'htmlwidget'
 
 ```{r}
 # Data frame created
-dataset <- tibble(
+data <- tibble(
   dist1 = rnorm(100),
   dist2 = runif(100)
 )
@@ -32,7 +32,8 @@ write_csv(data, "data/example_data.csv")
 
 ```{r}
 # To plot this graphic in Power BI, copy and paste this code in the tool
-ggplot(dataset) %>%
+data %>% 
+  ggplot() +
   geom_histogram(
     aes(dist1),
     bins  = 10,
@@ -48,54 +49,39 @@ dataset <- tibble(dist1 = data %>% pull(dist1))
 head(dataset)
 ```
 
-Antti: At the time of writing, the word document (of Chapter 10 of the book) is missing from the original repo. I will include the original code as a placeholder, but will update it as soon as the word document is available.
-
-## Word cloud
+## Word Cloud
 
 ```{r}
-# Read word document
-chapter10 <- read_docx("data/Data_Wrangling_With_R_Chapter10.docx")
-content   <- docx_summary(chapter10)
+# Read word document and extract textual information
+text <- read_docx("data/Data_Wrangling_With_R_Chapter10_for_wordcloud.docx") %>% 
+  docx_summary() %>%
+  as_tibble() %>% 
+  filter(text != "") %>%
+  pull(text) %>% 
+  str_squish() %>% 
+  as_tibble()
 
-# Extract only textual information and drop Blank cells and NAs
-text <- content %>% 
-  select(text) %>% 
-  na_if("") %>% 
-  drop_na()
-
-# Transform to tibble object
-text <- tibble(text)
+text
 ```
 
 ```{r}
 # Tokenize - one word is one token
-text_tokens <- text %>%
-  unnest_tokens(output = word, input = text)
-```
-
-```{r}
-# Remove numbers and punctuation
-clean_tokens <- text_tokens %>%
- filter(str_detect(word, "\\D")) %>%
- filter(!str_detect(word, "[:punct:]"))
-```
-
-```{r}
-# load stopwords
-data(stop_words)
-
-# Anti-join: keep only what is not in stop words
-clean_tokens <- clean_tokens %>%
-  anti_join(stop_words)
-```
-
-```{r}
-# Count word frequency.
-word_freq <- clean_tokens %>%
+clean_tokens <- text %>%
+  unnest_tokens(output = word, input = value) %>%
+  filter(str_detect(word, "\\D")) %>%
+  filter(!str_detect(word, "[:punct:]")) %>%
+  anti_join(stop_words) %>%
   count(word, sort = TRUE)
+
+clean_tokens
 ```
 
 ```{r}
-# Generating WordCloud
-wordcloud2(data = word_freq, color = "random-dark", size = 1)
+clean_tokens %>% 
+  wordcloud2(
+    color    = "random-dark",
+    gridSize = 3,
+    size     = 0.5,
+    shuffle  = TRUE
+  )
 ```

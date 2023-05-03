@@ -1,5 +1,5 @@
 ---
-title: "3 Basic Data Visualization"
+title: "Data Wrangling with R, Chapter 3: Basic Data Visualization"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-06-29"
 output: html_document

@@ -1,5 +1,5 @@
 ---
-title: "2 Loading and Exploring Datasets"
+title: "Data Wrangling with R, Chapter: 2 Loading and Exploring Datasets"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-06-20"
 output: html_document

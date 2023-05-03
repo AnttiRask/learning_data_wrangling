@@ -1,5 +1,5 @@
 ---
-title: "11 Enhanced Visualization with ggplot2"
+title: "Data Wrangling with R, Chapter 11: Enhanced Visualization with ggplot2"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-08-26"
 output: html_document

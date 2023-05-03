@@ -1,5 +1,5 @@
 ---
-title: "13 Building a Model with R"
+title: "Data Wrangling with R, Chapter 13: Building a Model with R"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-08-31"
 output: html_document

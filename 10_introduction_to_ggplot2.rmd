@@ -1,5 +1,5 @@
 ---
-title: "10 Intro to ggplot2"
+title: "Data Wrangling with R, Chapter 10: Intro to ggplot2"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-08-24"
 output: html_document

@@ -1,5 +1,5 @@
 ---
-title: "12 Other Data Visualization Options"
+title: "Data Wrangling with R, Chapter 12: Other Data Visualization Options"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-08-29"
 output: html_document

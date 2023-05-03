@@ -1,5 +1,5 @@
 ---
-title: "6 Working with DateTime"
+title: "Data Wrangling with R, Chapter 6: Working with DateTime"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-07-14"
 output: html_document

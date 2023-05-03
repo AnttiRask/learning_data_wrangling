@@ -1,5 +1,5 @@
 ---
-title: "4 Working with Strings"
+title: "Data Wrangling with R, Chapter 4: Working with Strings"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-07-03"
 output: html_document

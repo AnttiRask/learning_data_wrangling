@@ -1,5 +1,5 @@
 ---
-title: "8 Transformations with tidyverse"
+title: "Data Wrangling with R, Chapter 8: Transformations with tidyverse"
 author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
 date: "2022-07-26"
 output: html_document

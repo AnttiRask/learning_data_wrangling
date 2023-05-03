@@ -1,12 +1,14 @@
-#---
-#Title: "14 Building an Application with Shiny in R"
-#author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
-#date: "2022-08-31"
-#---
+# ---
+# Title: "Data Wrangling with R, Chapter 14: Building an Application with Shiny in R"
+# author: "Gustavo R. Santos (original) | Antti Rask (modifications)"
+# date: "2022-08-31"
+# ---
 
 # Building an Application with Shiny in R ####
 
 ## Loading Libraries ####
+library(conflicted)   # An Alternative Conflict Resolution Strategy
+  conflicts_prefer(plotly::layout)
 library(plotly)       # Create Interactive Web Graphics via 'plotly.js'
 library(randomForest) # Breiman and Cutler's Random Forests for Classification and Regression
 library(shiny)        # Web Application Framework for R
@@ -48,7 +50,7 @@ prepare_input <- function(text) {
   )
   
   words      <- unlist(strsplit(text, split = " "))
-  spam_count <- sum(map_lgl(words, function(word) tolower(word) %in% spam_words))
+  spam_count <- sum(map_lgl(words, ~tolower(.x) %in% spam_words))
   
   exclamation         <- str_count(text, pattern = "[!]")
   parenthesis         <- str_count(text, pattern = "[()]")
@@ -57,24 +59,16 @@ prepare_input <- function(text) {
   text_no_punctuation <- str_remove_all(text, pattern = "[:punct:]|[$]*")
   all_words           <- str_split(text_no_punctuation, pattern = " ")[[1]]
   
-  char_counts <- map_dbl(
-    all_words, function(word) {
+  char_counts <- map_dbl(all_words, function(word) {
       if (word == toupper(word)) {
         return(nchar(word))
       } else {
         return(0)
       }
-    }
-  )
+  })
   
   longest_upper <- max(char_counts)
-  top_w         <- sum(
-    map_lgl(
-      all_words, function(word) {
-        return(tolower(word) %in% spam_words)
-      }
-    )
-  )
+  top_w         <- sum(map_lgl(all_words, ~tolower(.x) %in% spam_words))
   
   input <- tibble(
     top_w_pct                  = 100 * top_w       / length(all_words),
@@ -147,8 +141,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                                # Text Input
                                textAreaInput(
                                  inputId = "text",
-                                 NULL,
-                                 " ",
+                                 label   = NULL,
+                                 value   = " ",
                                  width   = "1000px",
                                  height  = "120px"
                                ),
@@ -181,8 +175,9 @@ server <- function(input, output) {
     req(input$text)
     datatext <- NULL
     # If there is no text, show an empty table
-    if (trimws(input$text) == "") {input$text} 
-    else {
+    if (trimws(input$text) == "") {
+      input$text
+    } else {
       
       # Prepare data for input in the model
       datatext <- prepare_input(input$text)
@@ -215,15 +210,15 @@ server <- function(input, output) {
         width  = 500,
         height = 200
       )
-      g <- g %>% layout()}
-    else {
+      g <- g %>% layout()
+    } else {
       
       # Prepare data as a dataset
       datatext           <- prepare_input(input$text)
       datatext           <- tibble(t(datatext))
       colnames(datatext) <- "values"
-      datatext <- as_tibble(datatext)
-      measurements <- c(
+      datatext           <- as_tibble(datatext)
+      measurements       <- c(
         "Spam words",
         "Presence of !!!",
         "Presence of ( )",
@@ -255,3 +250,4 @@ server <- function(input, output) {
 
 ### Shiny App ####
 shinyApp(ui = ui, server = server)
+

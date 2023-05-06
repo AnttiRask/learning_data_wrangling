@@ -10,11 +10,12 @@ output: html_document
 ## Load Libraries
 
 ```{r, message=FALSE, warning=FALSE}
-library(conflicted) # An Alternative Conflict Resolution Strategy
-library(officer)    # Manipulation of Microsoft Word and PowerPoint Documents
-library(tidytext)   # Text Mining using 'dplyr', 'ggplot2', and Other Tidy Tools
-library(tidyverse)  # Easily Install and Load the 'Tidyverse'
-library(wordcloud2) # Create Word Cloud by 'htmlwidget' 
+library(conflicted)  # An Alternative Conflict Resolution Strategy
+  conflicts_prefer(dplyr::filter)
+library(ggwordcloud) # A Word Cloud Geom for 'ggplot2' 
+library(officer)     # Manipulation of Microsoft Word and PowerPoint Documents
+library(tidytext)    # Text Mining using 'dplyr', 'ggplot2', and Other Tidy Tools
+library(tidyverse)   # Easily Install and Load the 'Tidyverse'
 ```
 
 ## Plotting Graphic in Microsoft Power BI
@@ -76,12 +77,29 @@ clean_tokens <- text %>%
 clean_tokens
 ```
 
-```{r}
-clean_tokens %>% 
-  wordcloud2(
-    color    = "random-dark",
-    gridSize = 3,
-    size     = 0.5,
-    shuffle  = TRUE
-  )
+```{r, warning=FALSE}
+clean_tokens %>%
+  mutate(
+    angle = 90 * sample(
+      c(0, 1),
+      n(),
+      replace = TRUE,
+      prob = c(60, 40)
+    )
+  ) %>% 
+  ggplot(
+    aes(
+      label = word,
+      size  = n,
+      angle = angle,
+      color = factor(sample.int(10, nrow(clean_tokens), replace = TRUE))
+    )
+  ) +
+  geom_text_wordcloud(
+    shape      = "circle",
+    area_corr  = TRUE,
+    rm_outside = TRUE
+  ) +
+  scale_size_area(max_size = 30) +
+  theme_minimal()
 ```

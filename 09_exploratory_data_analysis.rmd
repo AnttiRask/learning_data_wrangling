@@ -169,7 +169,7 @@ create_boxplot <- function(variable, data) {
     ggplot(aes(y = value)) +
     geom_boxplot(fill = "royalblue", color = "gray") +
     labs(
-      y     = variable,
+      y     = NULL,
       title = paste("Boxplot of", variable)
     ) +
     theme_classic()
@@ -210,7 +210,7 @@ create_qq_plot <- function(variable, data) {
     stat_qq() +
     stat_qq_line(color = "royalblue", linewidth = 1) +
     labs(
-      x     = variable,
+      x     = NULL,
       y     = "Theoretical",
       title = str_c("QQ-plot of ", variable)
     ) +
@@ -275,7 +275,10 @@ correlation_matrix %>%
     y    = NULL
   ) +
   theme_classic() +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(
+    axis.text.x     = element_text(angle = 90),
+    legend.position = "none"
+    )
 ```
 
 #### Top 10 Majors?
@@ -289,7 +292,12 @@ top10_low_unemployment <- tbl_clean %>%
 
 # Plot
 top10_low_unemployment %>%
-  ggplot(aes(Unemployment_rate, fct_reorder(Major %>% str_to_title(), Unemployment_rate))) +
+  ggplot(
+    aes(
+      Unemployment_rate,
+      fct_reorder(Major %>% str_to_title(), Unemployment_rate, .desc = TRUE)
+    )
+  ) +
   geom_col(color = "royalblue", fill = "royalblue") +
   geom_text(
     aes(label = round(Unemployment_rate, 3)),
@@ -320,7 +328,12 @@ top10_proportional <- tbl_clean %>%
 
 # Plot the top 10 majors with the highest proportion and lowest unemployment rate
 top10_proportional %>%
-  ggplot(aes(Unemployment_rate, fct_reorder(Major %>% str_to_title(), Unemployment_rate))) +
+  ggplot(
+    aes(
+      Unemployment_rate,
+      fct_reorder(Major %>% str_to_title(), Unemployment_rate, .desc = TRUE)
+    )
+  ) +
   geom_col(color = "royalblue", fill = "royalblue") +
   geom_text(
     aes(label = round(Unemployment_rate, 3)),
@@ -567,6 +580,7 @@ median_salary_w <- tbl_clean_women_shares %>%
 tbl_clean_women_shares %>% 
   ggplot(aes(over_under, Median)) + 
   geom_boxplot(fill = "royalblue") +
+  scale_y_continuous(labels = label_dollar()) +
   labs(
     title    = "Average Salary When the Share of Women is lower/higher than 50%",
     subtitle = str_glue(
@@ -580,7 +594,7 @@ tbl_clean_women_shares %>%
     aes(
       over_under,
       med_sal,
-      label = round(med_sal)
+      label = label_dollar(accuracy = 1)(med_sal)
     ),
     size  = 4,
     vjust = 1,
